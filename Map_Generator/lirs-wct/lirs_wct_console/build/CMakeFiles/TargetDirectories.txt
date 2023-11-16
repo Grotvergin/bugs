@@ -1,0 +1,3 @@
+/home/ilya/lirs-wct/lirs_wct_console/build/CMakeFiles/rebuild_cache.dir
+/home/ilya/lirs-wct/lirs_wct_console/build/CMakeFiles/edit_cache.dir
+/home/ilya/lirs-wct/lirs_wct_console/build/CMakeFiles/lirs_wct_console.dir

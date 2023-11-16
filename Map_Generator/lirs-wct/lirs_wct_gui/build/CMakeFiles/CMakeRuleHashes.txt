@@ -1,0 +1,4 @@
+# Hashes of file build rules.
+37390406ea6ad5eb13180643a058bc8e CMakeFiles/lirs_wct_gui_autogen
+f6db0557d9815604a40633b21c237b9a include/moc_mainwindow.cpp
+73fac11d6a6d7120f2f85c1b60f6e1db ui_mainwindow.h

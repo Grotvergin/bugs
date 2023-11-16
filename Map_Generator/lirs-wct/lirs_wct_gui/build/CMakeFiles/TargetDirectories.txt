@@ -1,0 +1,4 @@
+/home/ilya/lirs-wct/lirs_wct_gui/build/CMakeFiles/rebuild_cache.dir
+/home/ilya/lirs-wct/lirs_wct_gui/build/CMakeFiles/edit_cache.dir
+/home/ilya/lirs-wct/lirs_wct_gui/build/CMakeFiles/lirs_wct_gui.dir
+/home/ilya/lirs-wct/lirs_wct_gui/build/CMakeFiles/lirs_wct_gui_autogen.dir

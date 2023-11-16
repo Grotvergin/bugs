@@ -1,0 +1,5 @@
+-I/home/ilya/lirs-wct/lirs_wct_gui
+-I/home/ilya/lirs-wct/lirs_wct_gui/build
+-o
+/home/ilya/lirs-wct/lirs_wct_gui/build/include/moc_mainwindow.cpp
+/home/ilya/lirs-wct/lirs_wct_gui/include/mainwindow.h
