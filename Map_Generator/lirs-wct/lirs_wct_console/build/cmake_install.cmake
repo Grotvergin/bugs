@@ -45,5 +45,5 @@ endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-file(WRITE "/home/ilya/lirs-wct/lirs_wct_console/build/${CMAKE_INSTALL_MANIFEST}"
+file(WRITE "~/lirs-wct/lirs_wct_console/build/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")
