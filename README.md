@@ -1,93 +1,194 @@
-# BUG Algorithms HSE 2023
+**Инструкция по запуску алгоритмов серии Bug**
 
 
 
-## Getting started
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
 
-## Add your files
+**Необходимые преустановленные файлы и пакеты:**
 
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/ee/gitlab-basics/add-file.html#add-a-file-using-the-command-line) or push an existing Git repository with the following command:
+1. Установленная система для работы с ROS Noetic и созданный workspace(http://wiki.ros.org/ROS/Tutorials) 
+
+2. Пакеты для работы с turtlebot3
+https://emanual.robotis.com/docs/en/platform/turtlebot3/quick-start/
+
+3.Пакеты для работы в gazebo с turtlebot3(все туториалы должны быть для ros noetic)
+https://emanual.robotis.com/docs/en/platform/turtlebot3/simulation/#gazebo-simulation
+https://emanual.robotis.com/docs/en/platform/turtlebot3/quick-start/
+
+4. Python3 для запуска скриптов, написаных на нём
+
+
+
+
+
+**Установка пакета с алгоритмами:**
+
+1. Скачать архив с пакетом src
+
+2. Разархивировать его в catkin_ws
+(вместо catkin_ws должно быть название Вашего воркспейса)
+
+3. Проверить, что все файлы в установленном пакете executable
+
+_Для этого заходим в scripts и в Properties/permissions ставим галочку около allow executing file as program
+Аналогично повторяем с CMAKE, xml, setup.py файлами в самом пакете, bug_alg, launch файлами в launch и файлом по адресу ~/catkin_ws/src/bug_alg/src/bug_alg/__init__.py _
+
+Или проще выдать права этим файлам, написав в терминале:
+```
+cd ~/catkin_ws/
+chmod +x src/bug_alg/CMakeLists.txt
+chmod +x src/bug_alg/package.xml
+chmod +x src/bug_alg/setup.py
+chmod +x src/bug_alg/launch/*.launch
+chmod +x src/bug_alg/scripts/*.py
+chmod +x src/bug_alg/src/bug_alg/__init__.py
+```
+
+4. Открываем terminal и пишем команды 
 
 ```
-cd existing_repo
-git remote add origin https://gitlab.com/LIRS_Projects/bug-algorithms-hse-2023.git
-git branch -M main
-git push -uf origin main
+cd ~/catkin_ws/
+
+catkin_make
+
+source devel/setup.bash
 ```
 
-## Integrate with your tools
 
-- [ ] [Set up project integrations](https://gitlab.com/LIRS_Projects/bug-algorithms-hse-2023/-/settings/integrations)
+5. Иногда возникают проблемы с catkin_make и приходится повторять 4 шаг несколько раз
 
-## Collaborate with your team
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Set auto-merge](https://docs.gitlab.com/ee/user/project/merge_requests/merge_when_pipeline_succeeds.html)
+6. Скачать архив с пакетом Classical_Labs и разархивировать рядом с catkin_ws
 
-## Test and Deploy
+7. В файле catkin_ws/src/turtlebot3_simulations/turtlebot3_gazebo/worlds/small.world заменить username на актуальное имя пользователя
 
-Use the built-in continuous integration in GitLab.
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/index.html)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
 
-***
+**Средства работы с мирами Газебо**
 
-# Editing this README
+Для миров из папки со средами запуска достаточно будет переместить launch файл в ~/catkin_ws/src/turtlebot3_simulations/turtlebot3_gazebo/launch и заменить <worldname>.world в самом файле на расположение мира газебо у себя в системе
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+Проверьте, что после скачивание папки адрес dae файла внутри файла world совпадает с расположение соответствующего dae файла в системе
 
-## Suggestions for a good README
+Для этого нам понадобится заранее установленный пакет для работы в gazebo с turtlebot3
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+1. Заходим в папку ~/catkin_ws/src/turtlebot3_simulations/turtlebot3_gazebo/launch
 
-## Name
-Choose a self-explaining name for your project.
+2. Создаём файл <filename>.launch
+ Копируем туда код, заменив <worldname>.world на расположение мира газебо у себя в системе
+ 
+```
+ 
+ <launch>
+  <arg name="model" default="$(env TURTLEBOT3_MODEL)" doc="model type [burger, waffle, waffle_pi]"/>
+  <arg name="x_pos" default="1.5"/>
+  <arg name="y_pos" default="1.5"/>
+  <arg name="z_pos" default="1.0"/>
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name" value="<worldname>.world"/>
+    <arg name="paused" value="false"/>
+    <arg name="use_sim_time" value="true"/>
+    <arg name="gui" value="true"/>
+    <arg name="headless" value="false"/>
+    <arg name="debug" value="false"/>
+  </include>
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+  <param name="robot_description" command="$(find xacro)/xacro --inorder $(find turtlebot3_description)/urdf/turtlebot3_$(arg model).urdf.xacro" />
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+  <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" args="-urdf -model turtlebot3 -x $(arg x_pos) -y $(arg y_pos) -z $(arg z_pos) -param robot_description" />
+</launch>
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+<arg name="x_pos" default="1.5"/>
+<arg name="y_pos" default="1.5"/>
+<arg name="z_pos" default="1.0"/>
+```
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+Изменяя аргументы в этих трёх строчках можно менять координаты спавна робота
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+**ВАЖНО:** Проверьте, что после скачивания world файла адрес соответствующего dae файла внутри совпадает с расположением этого же dae файла в системе
 
-## License
-For open source projects, say how it is licensed.
+3. Откройте терминал и напишите 
+`export TURTLEBOT3_MODEL=burger`
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+Затем
+`roslaunch turtlebot3_gazebo <filename>.launch `
+Например, для запуска мира turtlebot3_world.world:
+```
+export TURTLEBOT3_MODEL=burger
+roslaunch turtlebot3_gazebo turtlebot3_world.launch
+```
+После этого загрузится Ваш собственный мир газебо
+
+Чтобы не писать каждый раз эти команлды можно написать скрипт на bash'е и расположить его в папке catkin_ws, дать название файла, например, "start.bash".
+
+start.bash
+```
+source devel/setup.bash
+export TURTLEBOT3_MODEL=burger
+roslaunch turtlebot3_gazebo <filename>.launch
+```
+
+Для запуска карты:
+```
+cd ~/catkin_ws/
+bash start.bash
+```
+
+
+
+
+**Запуск алгоритмов**
+
+В новом терминале
+`export TURTLEBOT3_MODEL=burger`
+1. Открыть консоль и прописать
+`roslaunch bug_alg algname.launch des_x:=6 des_y:=6`
+
+algname - в зависимости от желаемого алгоритма
+Например, для запуска алгоритма bug1:
+```
+export TURTLEBOT3_MODEL=burger
+roslaunch bug_alg bug1.launch des_x:=0.7 des_y:=0.7
+```
+
+Меняя значения des_x и des_y можно изменять координаты точки, до которой необходмио будет доехать роботу
+
+Алгоритм можно запускать с помощью Makefile'а. Makefile должен располагаться в папке catkin_ws
+Makefile :
+```
+bug1:
+	roslaunch bug_alg bug1.launch des_x:=6 des_y:=6
+
+bug2:
+	roslaunch bug_alg bug2.launch des_x:=-1.1 des_y:=-1.1
+
+class1:
+	roslaunch bug_alg class1.launch des_x:=2 des_y:=-1
+
+distbug:
+	roslaunch bug_alg distbug.launch des_x:=3 des_y:=0
+```
+
+Запустить алгоритм:
+```
+cd ~/catkin_ws/
+make {алгоритм}
+```
+
+**Тестирование**
+
+
+Предлагается тестировать на двух типах карт:
+1. Карта с замкнутыми препятствиями turtlebot3_world
+Файл turtlebot3_world testcases
+
+
+2. Лабиринт small
+Файл small_world testcases
