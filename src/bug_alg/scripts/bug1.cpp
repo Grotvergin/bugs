@@ -100,6 +100,12 @@ float calc_dist_points(geometry_msgs::Point point1, geometry_msgs::Point point2)
     return sqrt(pow(dist_y, 2) + pow(dist_x, 2));
 }
 
+// function to normalize angle
+float normalize_angle(float angle){
+    if (fabs(angle) > M_PI) angle = angle - (2 * M_PI * angle) / (fabs(angle));
+    return angle;
+}
+
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "bug1");
