@@ -93,6 +93,13 @@ void change_state(int state){
     }
 }
 
+// function to calculate distance betweeen two points
+float calc_dist_points(geometry_msgs::Point point1, geometry_msgs::Point point2){
+    float dist_y = point1.y - point2.y;
+    float dist_x = point1.x - point2.x;
+    return sqrt(pow(dist_y, 2) + pow(dist_x, 2));
+}
+
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "bug1");
