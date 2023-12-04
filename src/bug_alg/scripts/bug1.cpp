@@ -21,6 +21,9 @@
 #include <iostream>
 #include <string>
 #include <math.h>
+#include <chrono>
+#include <ctime>
+#include <algorithm>
 
 // initializing parameters
 bool srv_client_go_to_point_;
@@ -44,6 +47,12 @@ float count_state_time_ = 0; // seconds the robot is in a state
 float count_loop_ = 0;
 float count_point = 0;
 
+ros::ServiceClient srv_client_go_to_point_;
+ros::ServiceClient srv_client_wall_follower_;
+ros::ServiceClient srv_client_wall_follower_left_;
+ros::ServiceClient srv_client_set_model_state;
+ros::ServiceClient reset_world;
+
 // 0 - go to point
 // 1 - circumnavigate
 // 2 - go to closest point
@@ -51,6 +60,15 @@ float count_point = 0;
 // 4 - circumnavigate left
 // 5 - check reachability
 
+// callbacks
+// robot movement callbacks
+void clbk_odom(const std_msgs::StringConstPtr& msg){
+    // foo
+}
+// laser callback
+void clbk_laser(const std_msgs::StringConstPtr& msg){
+    // foo
+}
 
 // state changer
 void change_state(int state){
@@ -121,9 +139,6 @@ std::string vector_to_string(std::vector<geometry_msgs::Point> vect_pnts){
 
 int main(int argc, char **argv)
 {
-    ros::init(argc, argv, "bug1");
-    ros::NodeHandle nodeHandler;
-    ros::Publisher pub = nodeHandler.advertise<std_msgs::String>("/cmd_vel", 5); // не знаю почему 5
     geometry_msgs::Point circumnavigate_starting_point_();
     geometry_msgs::Point circumnavigate_closest_point_();
     geometry_msgs::Point position_;
@@ -136,4 +151,32 @@ int main(int argc, char **argv)
     ros::param::get("des_pos_x", desired_position_.x);
     ros::param::get("des_pos_y", desired_position_.y);
     desired_position_.z = 0;
+    float sum_yaw = 0;
+    std::vector<geometry_msgs::Point> points, POINTS;
+    std::vector<float> length_to_points;
+    auto timer_hp = std::chrono::system_clock::now();
+    int obstacle_count = 0;
+
+    // init script as a node
+    ros::init(argc, argv, "bug1");
+    // creating publisher to change velocities
+    ros::NodeHandle nh;
+    ros::Publisher pub = nh.advertise<std_msgs::String>("/cmd_vel", 1);
+
+    ros::Subscriber sub_laser = nh.subscribe("/scan", 1, clbk_laser);
+    ros::Subscriber sub_odom = nh.subscribe("/scan", 1, clbk_odom); // вроде не используются, передаются функции заглушки
+
+    // initialize servers for other scripts involved
+    ros::service::waitForService("/go_to_point_switch");
+    ros::service::waitForService("/wall_follower_switch");
+    ros::service::waitForService("/wall_follower_left_switch");
+    ros::service::waitForService("/gazebo/set_model_state");
+
+    srv_client_go_to_point_ = nh.serviceClient<std_srvs::SetBool>("/go_to_point_switch");
+    srv_client_wall_follower_ = nh.serviceClient<std_srvs::SetBool>("/wall_follower_switch");
+    srv_client_wall_follower_left_ = nh.serviceClient<std_srvs::SetBool>("/wall_follower_left_switch");
+    srv_client_set_model_state = nh.serviceClient<gazebo_msgs::SetModelState>("/gazebo/set_model_state");
+    reset_world = nh.serviceClient<std_srvs::Empty>("/gazebo/reset_world");
+
+
 }
