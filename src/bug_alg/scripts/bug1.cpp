@@ -106,6 +106,19 @@ float normalize_angle(float angle){
     return angle;
 }
 
+std::string vector_to_string(std::vector<geometry_msgs::Point> vect_pnts){
+    std::string str;
+    str.append("[");
+    for (auto i : vect_pnts){
+        str.append(std::to_string(i.x));
+        str.append(" ");
+        str.append(std::to_string(i.y));
+        str.append(";");
+    }
+    str.append("]");
+    return str;
+}
+
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "bug1");
