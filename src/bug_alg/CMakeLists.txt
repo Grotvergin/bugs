@@ -20,10 +20,18 @@ find_package(catkin REQUIRED COMPONENTS
 
 catkin_python_setup()
 
+add_executable(go_to_point scripts/go_to_point.cpp)
+add_executable(wall_follower scripts/follow_wall.cpp)
+add_executable(wall_follower_left scripts/follow_wall_left.cpp)
+add_executable(bug1 scripts/bug1.cpp)
+
+target_link_libraries(go_to_point ${catkin_LIBRARIES})
+target_link_libraries(wall_follower ${catkin_LIBRARIES})
+target_link_libraries(wall_follower_left ${catkin_LIBRARIES})
+target_link_libraries(bug1 ${catkin_LIBRARIES})
+
 find_package(gazebo REQUIRED)
-
-
-
+find_package(Boost REQUIRED COMPONENTS system)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
