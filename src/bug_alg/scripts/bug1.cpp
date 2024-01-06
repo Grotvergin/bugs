@@ -61,33 +61,6 @@ ros::ServiceClient srv_client_set_model_state;
 // 5 - check reachability
 
 
-// callbacks
-// robot movement callbacks
-void clbk_odom(const nav_msgs::Odometry::ConstPtr& msg) {
-    // position
-    position_ = msg->pose.pose.position;
-
-    // yaw
-    tf::Quaternion q(
-        msg->pose.pose.orientation.x,
-        msg->pose.pose.orientation.y,
-        msg->pose.pose.orientation.z,
-        msg->pose.pose.orientation.w);
-    tf::Matrix3x3 m(q);
-    double roll, pitch;
-    m.getRPY(roll, pitch, yaw_);
-}
-
-// laser callback
-void clbk_laser(const sensor_msgs::LaserScan::ConstPtr& msg) {
-    regions_["left"] = std::min(*std::min_element(msg->ranges.begin() + 54, msg->ranges.begin() + 89), 10.0f);
-    regions_["fleft"] = std::min(*std::min_element(msg->ranges.begin() + 23, msg->ranges.begin() + 53), 10.0f);
-    regions_["front"] = std::min(std::min(*std::min_element(msg->ranges.begin(), msg->ranges.begin() + 22), *std::min_element(msg->ranges.begin() + 338, msg->ranges.begin() + 359)), 10.0f);
-    regions_["fright"] = std::min(*std::min_element(msg->ranges.begin() + 306, msg->ranges.begin() + 337), 10.0f);
-    regions_["right"] = std::min(*std::min_element(msg->ranges.begin() + 270, msg->ranges.begin() + 305), 10.0f);
-    regions_["left45"] = std::min(msg->ranges[45], 10.0f);
-    take_action();
-}
 
 // state changer
 void change_state(int state)
@@ -174,6 +147,35 @@ void take_action() {
        ROS_INFO("%s", state_description.c_str());
     }
 }
+
+// callbacks
+// robot movement callbacks
+void clbk_odom(const nav_msgs::Odometry::ConstPtr& msg) {
+    // position
+    position_ = msg->pose.pose.position;
+
+    // yaw
+    tf::Quaternion q(
+        msg->pose.pose.orientation.x,
+        msg->pose.pose.orientation.y,
+        msg->pose.pose.orientation.z,
+        msg->pose.pose.orientation.w);
+    tf::Matrix3x3 m(q);
+    double roll, pitch;
+    m.getRPY(roll, pitch, yaw_);
+}
+
+// laser callback
+void clbk_laser(const sensor_msgs::LaserScan::ConstPtr& msg) {
+    regions_["left"] = std::min(*std::min_element(msg->ranges.begin() + 54, msg->ranges.begin() + 89), 10.0f);
+    regions_["fleft"] = std::min(*std::min_element(msg->ranges.begin() + 23, msg->ranges.begin() + 53), 10.0f);
+    regions_["front"] = std::min(std::min(*std::min_element(msg->ranges.begin(), msg->ranges.begin() + 22), *std::min_element(msg->ranges.begin() + 338, msg->ranges.begin() + 359)), 10.0f);
+    regions_["fright"] = std::min(*std::min_element(msg->ranges.begin() + 306, msg->ranges.begin() + 337), 10.0f);
+    regions_["right"] = std::min(*std::min_element(msg->ranges.begin() + 270, msg->ranges.begin() + 305), 10.0f);
+    regions_["left45"] = std::min(msg->ranges[45], 10.0f);
+    take_action();
+}
+
 
 // function to calculate distance betweeen two points
 double calc_dist_points(geometry_msgs::Point point1, geometry_msgs::Point point2)
