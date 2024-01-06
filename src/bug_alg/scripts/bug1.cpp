@@ -60,48 +60,6 @@ ros::ServiceClient srv_client_set_model_state;
 // 4 - circumnavigate left
 // 5 - check reachability
 
-// main function which tells robot what he should do(chsnges states) depending on his surroundings
-void take_action() {
-    auto regions = regions_;
-    geometry_msgs::Twist msg;
-    double linear_x = 0;
-    double angular_z = 0;
-
-    std::string state_description = "";
-
-    // not advised to change these settings
-    double laser_range = 0.3;
-    double diag_range = 0.4;
-
-    if (regions["front"] < laser_range && regions["fleft"] > laser_range && regions["fright"] > laser_range) {
-        state_description = "case 1 - front";
-        change_state(3);
-    } else if (regions["front"] > laser_range && regions["fleft"] > laser_range && regions["fright"] < laser_range) {
-        state_description = "case 2 - fright";
-        change_state(2);
-    } else if (regions["front"] > laser_range && regions["fleft"] > laser_range && regions["fright"] > laser_range && regions["right45"] > diag_range) {
-        state_description = "case 3 - correct angle";
-        change_state(1);
-    } else if (regions["front"] > laser_range && regions["fleft"] < laser_range && regions["fright"] > laser_range) {
-        state_description = "case 4 - fleft";
-        change_state(2);
-    } else if (regions["front"] < laser_range && regions["fleft"] > laser_range && regions["fright"] < laser_range) {
-        state_description = "case 5 - front and fright";
-        change_state(3);
-    } else if (regions["front"] < laser_range && regions["fleft"] < laser_range && regions["fright"] > laser_range) {
-        state_description = "case 6 - front and fleft";
-        change_state(3);
-    } else if (regions["front"] < laser_range && regions["fleft"] < laser_range && regions["fright"] < laser_range) {
-        state_description = "case 7 - front and fleft and fright";
-        change_state(3);
-    } else if (regions["front"] > laser_range && regions["fleft"] < laser_range && regions["fright"] < laser_range) {
-       state_description = "case 8 - fleft and fright";
-       change_state(0);
-    } else {
-       state_description = "unknown case";
-       ROS_INFO("%s", state_description.c_str());
-    }
-}
 
 // callbacks
 // robot movement callbacks
@@ -171,6 +129,49 @@ void change_state(int state)
         srv_client_wall_follower_ = false;
         srv_client_wall_follower_left_ = false;
         break;
+    }
+}
+
+// main function which tells robot what he should do(chsnges states) depending on his surroundings
+void take_action() {
+    auto regions = regions_;
+    geometry_msgs::Twist msg;
+    double linear_x = 0;
+    double angular_z = 0;
+
+    std::string state_description = "";
+
+    // not advised to change these settings
+    double laser_range = 0.3;
+    double diag_range = 0.4;
+
+    if (regions["front"] < laser_range && regions["fleft"] > laser_range && regions["fright"] > laser_range) {
+        state_description = "case 1 - front";
+        change_state(3);
+    } else if (regions["front"] > laser_range && regions["fleft"] > laser_range && regions["fright"] < laser_range) {
+        state_description = "case 2 - fright";
+        change_state(2);
+    } else if (regions["front"] > laser_range && regions["fleft"] > laser_range && regions["fright"] > laser_range && regions["right45"] > diag_range) {
+        state_description = "case 3 - correct angle";
+        change_state(1);
+    } else if (regions["front"] > laser_range && regions["fleft"] < laser_range && regions["fright"] > laser_range) {
+        state_description = "case 4 - fleft";
+        change_state(2);
+    } else if (regions["front"] < laser_range && regions["fleft"] > laser_range && regions["fright"] < laser_range) {
+        state_description = "case 5 - front and fright";
+        change_state(3);
+    } else if (regions["front"] < laser_range && regions["fleft"] < laser_range && regions["fright"] > laser_range) {
+        state_description = "case 6 - front and fleft";
+        change_state(3);
+    } else if (regions["front"] < laser_range && regions["fleft"] < laser_range && regions["fright"] < laser_range) {
+        state_description = "case 7 - front and fleft and fright";
+        change_state(3);
+    } else if (regions["front"] > laser_range && regions["fleft"] < laser_range && regions["fright"] < laser_range) {
+       state_description = "case 8 - fleft and fright";
+       change_state(0);
+    } else {
+       state_description = "unknown case";
+       ROS_INFO("%s", state_description.c_str());
     }
 }
 
