@@ -26,16 +26,15 @@
 #include <ctime>
 #include <algorithm>
 #include <sys/resource.h>
+#include <unordered_map>
 
 // initializing parameters
-bool srv_client_go_to_point_;
-bool srv_client_wall_follower_;
-bool srv_client_wall_follower_left_;
-float yaw_;
-float sum_yaw;
-float yaw_error_allowed_ = 5 * (M_PI / 180); // 5 degrees
+double yaw_ = 0;
+double sum_yaw = 0;
+double yaw_error_allowed_ = 5 * (M_PI / 180); // 5 degrees
+geometry_msgs::Point position_;
 // get the innitial position coordinates
-std::unordered_map<std::string, float> regions_;
+std::unordered_map<std::string, double> regions_;
 // states of robot during algorithm
 std::array<std::string, 6> state_desc_ = {
     "Go to point",
@@ -45,9 +44,9 @@ std::array<std::string, 6> state_desc_ = {
     "left_circumnavigating",
     "turn to point/checking for reachability"};
 int state_;
-float count_state_time_ = 0; // seconds the robot is in a state
-float count_loop_ = 0;
-float count_point = 0;
+double count_state_time_ = 0; // seconds the robot is in a state
+double count_loop_ = 0;
+double count_point = 0;
 
 ros::ServiceClient srv_client_go_to_point_;
 ros::ServiceClient srv_client_wall_follower_;
@@ -61,16 +60,75 @@ ros::ServiceClient srv_client_set_model_state;
 // 4 - circumnavigate left
 // 5 - check reachability
 
+// main function which tells robot what he should do(chsnges states) depending on his surroundings
+void take_action() {
+    auto regions = regions_;
+    geometry_msgs::Twist msg;
+    double linear_x = 0;
+    double angular_z = 0;
+
+    std::string state_description = "";
+
+    // not advised to change these settings
+    double laser_range = 0.3;
+    double diag_range = 0.4;
+
+    if (regions["front"] < laser_range && regions["fleft"] > laser_range && regions["fright"] > laser_range) {
+        state_description = "case 1 - front";
+        change_state(3);
+    } else if (regions["front"] > laser_range && regions["fleft"] > laser_range && regions["fright"] < laser_range) {
+        state_description = "case 2 - fright";
+        change_state(2);
+    } else if (regions["front"] > laser_range && regions["fleft"] > laser_range && regions["fright"] > laser_range && regions["right45"] > diag_range) {
+        state_description = "case 3 - correct angle";
+        change_state(1);
+    } else if (regions["front"] > laser_range && regions["fleft"] < laser_range && regions["fright"] > laser_range) {
+        state_description = "case 4 - fleft";
+        change_state(2);
+    } else if (regions["front"] < laser_range && regions["fleft"] > laser_range && regions["fright"] < laser_range) {
+        state_description = "case 5 - front and fright";
+        change_state(3);
+    } else if (regions["front"] < laser_range && regions["fleft"] < laser_range && regions["fright"] > laser_range) {
+        state_description = "case 6 - front and fleft";
+        change_state(3);
+    } else if (regions["front"] < laser_range && regions["fleft"] < laser_range && regions["fright"] < laser_range) {
+        state_description = "case 7 - front and fleft and fright";
+        change_state(3);
+    } else if (regions["front"] > laser_range && regions["fleft"] < laser_range && regions["fright"] < laser_range) {
+       state_description = "case 8 - fleft and fright";
+       change_state(0);
+    } else {
+       state_description = "unknown case";
+       ROS_INFO("%s", state_description.c_str());
+    }
+}
+
 // callbacks
 // robot movement callbacks
-void clbk_odom(const std_msgs::StringConstPtr &msg)
-{
-    // foo
+void clbk_odom(const nav_msgs::Odometry::ConstPtr& msg) {
+    // position
+    position_ = msg->pose.pose.position;
+
+    // yaw
+    tf::Quaternion q(
+        msg->pose.pose.orientation.x,
+        msg->pose.pose.orientation.y,
+        msg->pose.pose.orientation.z,
+        msg->pose.pose.orientation.w);
+    tf::Matrix3x3 m(q);
+    double roll, pitch;
+    m.getRPY(roll, pitch, yaw_);
 }
+
 // laser callback
-void clbk_laser(const std_msgs::StringConstPtr &msg)
-{
-    // foo
+void clbk_laser(const sensor_msgs::LaserScan::ConstPtr& msg) {
+    regions_["left"] = std::min(*std::min_element(msg->ranges.begin() + 54, msg->ranges.begin() + 89), 10.0f);
+    regions_["fleft"] = std::min(*std::min_element(msg->ranges.begin() + 23, msg->ranges.begin() + 53), 10.0f);
+    regions_["front"] = std::min(std::min(*std::min_element(msg->ranges.begin(), msg->ranges.begin() + 22), *std::min_element(msg->ranges.begin() + 338, msg->ranges.begin() + 359)), 10.0f);
+    regions_["fright"] = std::min(*std::min_element(msg->ranges.begin() + 306, msg->ranges.begin() + 337), 10.0f);
+    regions_["right"] = std::min(*std::min_element(msg->ranges.begin() + 270, msg->ranges.begin() + 305), 10.0f);
+    regions_["left45"] = std::min(msg->ranges[45], 10.0f);
+    take_action();
 }
 
 // state changer
@@ -79,7 +137,7 @@ void change_state(int state)
     int count_state_time = 0;
     state_ = state;
     // informing user that the state has changed
-    ROS_INFO("state changed: ", state_desc_[state]);
+    ROS_INFO("%s", "state changed: " + state_desc_[state]);
     // different states turn on and off different servers(other scripts)
     switch (state_)
     {
@@ -117,15 +175,15 @@ void change_state(int state)
 }
 
 // function to calculate distance betweeen two points
-float calc_dist_points(geometry_msgs::Point point1, geometry_msgs::Point point2)
+double calc_dist_points(geometry_msgs::Point point1, geometry_msgs::Point point2)
 {
-    float dist_y = point1.y - point2.y;
-    float dist_x = point1.x - point2.x;
+    double dist_y = point1.y - point2.y;
+    double dist_x = point1.x - point2.x;
     return sqrt(pow(dist_y, 2) + pow(dist_x, 2));
 }
 
 // function to normalize angle
-float normalize_angle(float angle)
+double normalize_angle(double angle)
 {
     if (fabs(angle) > M_PI)
         angle = angle - (2 * M_PI * angle) / (fabs(angle));
@@ -151,7 +209,7 @@ int main(int argc, char **argv)
 {
     geometry_msgs::Point circumnavigate_starting_point_;
     geometry_msgs::Point circumnavigate_closest_point_;
-    geometry_msgs::Point position_, prev_point_;
+    geometry_msgs::Point prev_point_;
     geometry_msgs::Point initial_position_;
     ros::param::get("initial_x", initial_position_.x);
     ros::param::get("initial_y", initial_position_.y);
@@ -161,9 +219,9 @@ int main(int argc, char **argv)
     ros::param::get("des_pos_x", desired_position_.x);
     ros::param::get("des_pos_y", desired_position_.y);
     desired_position_.z = 0;
-    float sum_yaw = 0;
+    double sum_yaw = 0;
     std::vector<geometry_msgs::Point> points, POINTS;
-    std::vector<float> length_to_points;
+    std::vector<double> length_to_points;
     auto timer_hp = std::chrono::system_clock::now();
     int obstacle_count = 0;
 
@@ -193,11 +251,11 @@ int main(int argc, char **argv)
     model_state.model_name = "turtlebot3_burger";
 
     // calculate the yaw to destination point
-    float desired_yaw;
+    double desired_yaw;
     desired_yaw = atan2(desired_position_.y - position_.y, desired_position_.x - position_.x);
-    float err_yaw = desired_yaw - yaw_;
+    double err_yaw = desired_yaw - yaw_;
 
-    float pth = 0;
+    double pth = 0;
 
     // point the robot to the destination point
 
@@ -217,7 +275,7 @@ int main(int argc, char **argv)
 
     // initialize going to the point
     change_state(0);
-    float yaw_before = yaw_;
+    double yaw_before = yaw_;
 
     int rate_hz = 20;
     ros::Rate rate(rate_hz);
@@ -229,7 +287,7 @@ int main(int argc, char **argv)
         int num_points;
         if (regions_.empty())
             continue;
-        float diff = fabs(yaw_ - yaw_before);
+        double diff = fabs(yaw_ - yaw_before);
 
         if (diff > 1)
             sum_yaw += fabs(yaw_ + yaw_before);
@@ -241,13 +299,13 @@ int main(int argc, char **argv)
 
         if (sqrt(pow(desired_position_.y - position_.y, 2) + pow(desired_position_.x - position_.x, 2)) < 0.2)
         {
-            ROS_INFO("point reached");
+            ROS_INFO("%s", "point reached");
             geometry_msgs::Twist twist_msg;
             twist_msg.angular.z = 0;
             twist_msg.linear.x = 0;
             pub.publish(twist_msg);
             POINTS.push_back(position_);
-            ROS_INFO("point reached");
+            ROS_INFO("%s", "point reached");
             auto RESULT_TIME = std::chrono::system_clock::now() - timer_hp;
 
             std::ofstream file("results.txt");
@@ -278,7 +336,7 @@ int main(int argc, char **argv)
         // go to point state
         switch (state_)
         {
-        case 0:
+        case 0:{
             bool right = true;
             desired_yaw = atan2(
                 desired_position_.y - position_.y, desired_position_.x - position_.x);
@@ -297,14 +355,16 @@ int main(int argc, char **argv)
                 change_state(1);
             }
             break;
+        }
         case 1:
+        {
             // compare only after 5 seconds - need some time to get out of starting_point
             // if robot reaches (is close to) starting point
 
             if (count_state_time_ > 20 && calc_dist_points(position_, circumnavigate_starting_point_) < 0.2)
             {
                 bool right = true;
-                float least_path = pth;
+                double least_path = pth;
                 // choosing the leave point and the direction
                 for (int i = 0; i < num_points; i++)
                 {
@@ -366,15 +426,19 @@ int main(int argc, char **argv)
                 length_to_points.push_back(pth);
             }
             break;
+        }
         case 2:
+        {
             // if robot reaches (is close to) closest point
 
             if (calc_dist_points(position_, circumnavigate_closest_point_) < 0.2)
                 change_state(5);
 
             break;
+        }
         // face left
         case 3:
+        {
             while (regions_["left45"] > 0.4)
             {
                 geometry_msgs::Twist twist_msg;
@@ -383,15 +447,18 @@ int main(int argc, char **argv)
             }
             change_state(4);
             break;
+        }
         // circumnavigate left until the closest point is near
         case 4:
+        {
             if (calc_dist_points(position_, circumnavigate_closest_point_) < 0.2)
                 change_state(5);
             break;
 
             // check if path from the closest point is clear
-
+        }
         case 5:
+        {
             desired_yaw = atan2(desired_position_.y - position_.y, desired_position_.x - position_.x);
             err_yaw = desired_yaw - yaw_;
             while (!(fabs(err_yaw) <= M_PI / 90))
@@ -416,7 +483,7 @@ int main(int argc, char **argv)
             if (regions_["front"] > 0.15 && regions_["front"] < 0.45)
             {
                 POINTS.push_back(position_);
-                ROS_INFO("point cannot be reached");
+                ROS_INFO("%s", "point cannot be reached");
                 auto RESULT_TIME = std::chrono::system_clock::now() - timer_hp;
 
                 std::ofstream file("results.txt");
@@ -446,6 +513,7 @@ int main(int argc, char **argv)
             }
             change_state(0);
             break;
+        }
         }
 
         count_loop_ = count_loop_ + 1;
