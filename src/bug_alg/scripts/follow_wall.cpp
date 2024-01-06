@@ -2,7 +2,6 @@
 #include "ros/ros.h"
 #include "sensor_msgs/LaserScan.h"
 #include "geometry_msgs/Twist.h"
-#include "nav_msgs/Odometry.h"
 #include "tf/tf.h"
 #include "std_srvs/Empty.h"
 #include "std_srvs/EmptyRequest.h"

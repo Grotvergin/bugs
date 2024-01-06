@@ -65,43 +65,53 @@ ros::ServiceClient srv_client_set_model_state;
 // state changer
 void change_state(int state)
 {
-    int count_state_time = 0;
     state_ = state;
-    // informing user that the state has changed
-    ROS_INFO("%s", "state changed: " + state_desc_[state]);
-    // different states turn on and off different servers(other scripts)
-    switch (state_)
-    {
-    case 0:
-        srv_client_go_to_point_ = true;
-        srv_client_wall_follower_ = false;
-        srv_client_wall_follower_left_ = false;
-        break;
-    case 1:
-        srv_client_go_to_point_ = false;
-        srv_client_wall_follower_ = true;
-        srv_client_wall_follower_left_ = false;
-        break;
-    case 2:
-        srv_client_go_to_point_ = false;
-        srv_client_wall_follower_ = true;
-        srv_client_wall_follower_left_ = false;
-        break;
-    case 3:
-        srv_client_go_to_point_ = false;
-        srv_client_wall_follower_ = false;
-        srv_client_wall_follower_left_ = false;
-        break;
-    case 4:
-        srv_client_go_to_point_ = false;
-        srv_client_wall_follower_ = false;
-        srv_client_wall_follower_left_ = true;
-        break;
-    case 5:
-        srv_client_go_to_point_ = false;
-        srv_client_wall_follower_ = false;
-        srv_client_wall_follower_left_ = false;
-        break;
+    ROS_INFO_STREAM("state changed: " << state_desc_[state]);
+
+    std_srvs::SetBool srv;
+
+    // Включение/выключение соответствующих сервисов в зависимости от состояния
+    if (state_ == 0) {
+        srv.request.data = true;
+        srv_client_go_to_point_.call(srv);
+        srv.request.data = false;
+        srv_client_wall_follower_.call(srv);
+        srv_client_wall_follower_left_.call(srv);
+    } else if (state_ == 1) {
+        srv.request.data = false;
+        srv_client_go_to_point_.call(srv);
+        srv.request.data = true;
+        srv_client_wall_follower_.call(srv);
+        srv.request.data = false;
+        srv_client_wall_follower_left_.call(srv);
+    } else if (state_ == 2) {
+        srv.request.data = false;
+        srv_client_go_to_point_.call(srv);
+        srv.request.data = true;
+        srv_client_wall_follower_.call(srv);
+        srv.request.data = false;
+        srv_client_wall_follower_left_.call(srv);
+    } else if (state_ == 3) {
+        srv.request.data = false;
+        srv_client_go_to_point_.call(srv);
+        srv.request.data = false;
+        srv_client_wall_follower_.call(srv);
+        srv.request.data = false;
+        srv_client_wall_follower_left_.call(srv);
+    } else if (state_ == 4) {
+        srv.request.data = false;
+        srv_client_go_to_point_.call(srv);
+        srv.request.data = false;
+        srv_client_wall_follower_.call(srv);
+        srv.request.data = true;
+        srv_client_wall_follower_left_.call(srv);
+    } else if (state_ == 5) {
+        srv.request.data = false;
+        srv_client_go_to_point_.call(srv);
+        srv.request.data = false;
+        srv_client_wall_follower_.call(srv);
+        srv.request.data = false;
+        srv_client_wall_follower_left_.call(srv);
     }
 }
 
@@ -235,8 +245,8 @@ int main(int argc, char **argv)
     ros::Publisher pub = nh.advertise<std_msgs::String>("/cmd_vel", 1);
     ros::ServiceClient reset_world = nh.serviceClient<std_srvs::Empty>("/gazebo/reset_world");
     ros::Subscriber sub_laser = nh.subscribe("/scan", 1, clbk_laser);
-    ros::Subscriber sub_odom = nh.subscribe("/scan", 1, clbk_odom); // вроде не используются, передаются функции заглушки
-
+    ros::Subscriber sub_odom = nh.subscribe("/odom", 1, clbk_odom); 
+    
     // initialize servers for other scripts involved
     ros::service::waitForService("/go_to_point_switch");
     ros::service::waitForService("/wall_follower_switch");
