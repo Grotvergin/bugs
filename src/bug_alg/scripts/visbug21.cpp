@@ -179,7 +179,7 @@ double distance_to_line(geometry_msgs::Point p0) {
    p1 = st_position_;
    p2 = desired_position_;
 
-   up_eq = std::abs(
+   up_eq = std::fabs(
        (p2.y - p1.y) * p0.x - (p2.x - p1.x) * p0.y + (p2.x * p1.y) - (p2.y * p1.x)
    );
    lo_eq = std::sqrt(std::pow(p2.y - p1.y, 2) + std::pow(p2.x - p1.x, 2));
@@ -198,8 +198,8 @@ double calc_dist_points(geometry_msgs::Point point1, geometry_msgs::Point point2
 
 
 double normalize_angle(double angle) {
-   if (std::abs(angle) > M_PI) {
-       angle = angle - (2 * M_PI * angle) / (std::abs(angle));
+   if (std::fabs(angle) > M_PI) {
+       angle = angle - (2 * M_PI * angle) / (std::fabs(angle));
    }
 
    return angle;
@@ -267,8 +267,8 @@ int cmp(int a, int b) {
 
 bool is_between(const geometry_msgs::Point& a, const geometry_msgs::Point& b, const geometry_msgs::Point& c) {
     return ((b.x - a.x) * (c.y - a.y) == (c.x - a.x) * (b.y - a.y) && 
-            std::abs(cmp(a.x, c.x) + cmp(b.x, c.x)) <= 1 &&
-            std::abs(cmp(a.y, c.y) + cmp(b.y, c.y)) <= 1);
+            std::fabs(cmp(a.x, c.x) + cmp(b.x, c.x)) <= 1 &&
+            std::fabs(cmp(a.y, c.y) + cmp(b.y, c.y)) <= 1);
 }
 
 
@@ -414,6 +414,13 @@ void computeTi_21() {
     change_state(0);
 }
 
+
+bool reset_world() {
+    std_srvs::Empty srv;
+    return ros::service::call("/gazebo/reset_world", srv);
+}
+
+
 int main(int argc, char **argv) {
     pid_t pid = getpid();
     ros::init(argc, argv, "visbug21");
@@ -477,11 +484,11 @@ int main(int argc, char **argv) {
         glob_steps += 1;
         double distance_position_to_line = distance_to_line(position_);
 
-        float diff = std::abs(yaw_ - yaw_before);
+        float diff = std::fabs(yaw_ - yaw_before);
         if (diff > 1) {
-            sum_yaw += std::abs(yaw_ + yaw_before);
+            sum_yaw += std::fabs(yaw_ + yaw_before);
         } else {
-            sum_yaw += std::abs(yaw_before - yaw_);
+            sum_yaw += std::fabs(yaw_before - yaw_);
         }
         yaw_before = yaw_;
 
@@ -515,10 +522,146 @@ int main(int argc, char **argv) {
             // System calls to kill nodes and reset the world
             system("rosnode kill /go_to_point");
             system("rosnode kill /wall_follower");
-            reset_world(); // Assuming reset_world() is implemented elsewhere
+            reset_world();
             system(("kill " + std::to_string(pid)).c_str()); // Assuming 'pid' is the process ID
         } else if (state_ == 0) {
-            
+            // Check if there is an obstacle forward
+            if (regions_["front"] > 0 && regions_["front"] < 0.25) {
+                st_point = position_;
+                OBSTACLES_COUNT += 1;
+                stuck_error = 0;
+                change_state(1);
+            }
+            if (count_state_time_ > 20 && count_state_time_ % 20 == 0) {
+                stuck_pos = position_;
+                if (calc_dist_points(stuck_pos, stuck_prev_pos) < 0.1) {
+                    stuck_error += 1;
+                }
+                if (stuck_error > 5) {
+                    std::string log = "Stuck error";
+                    ROS_INFO("%s", log.c_str());
+                    ros::Duration RESULT_TIME = ros::Time::now() - timer_hp;
+                    std::ofstream results_file;
+                    results_file.open("results.txt");
+                    results_file << "ELAPSED TIME: " << RESULT_TIME << "\n";
+                    results_file << "OBSTACLES COUNT: " << OBSTACLES_COUNT << "\n";
+                    results_file << "POINTS: " << list_to_string(POINTS) << "\n";
+                    size_t mem_after = process_memory();
+                    results_file << "MEMORY USAGE:  " << (mem_after - mem_before) << "\n";
+                    results_file << "COMPLEXITY: MEDIUM\n";
+                    results_file << "CALCULATION TIME: -\n";
+                    results_file << "TOTAL TURN: " << sum_yaw << "\n";
+                    results_file.close();
+                    system("rosnode kill /go_to_point");
+                    system("rosnode kill /wall_follower");
+                    system("rosnode kill /wall_follower_left");
+                    reset_world();
+                    system(("kill " + std::to_string(pid)).c_str());
+                }
+                stuck_prev_pos = stuck_pos;
+            }
+        } else if (state_ == 1) {
+            stuck_pos = position_;
+            if (count_state_time_ > 20 &&
+                distance_position_to_line < 0.1 &&
+                calc_dist_points(position_, desired_position_) < calc_dist_points(st_point, desired_position_)) {
+                computeTi_21();
+                change_state(2);
+            }
+            if (count_state_time_ > 20 && count_state_time_ % 50 == 0) {
+                stuck_pos = position_;
+                if (calc_dist_points(stuck_pos, stuck_prev_pos) < 0.1) {
+                    stuck_error += 1;
+                    ROS_INFO("stuck error: %d", stuck_error);
+                }
+                if (stuck_error > 5) {
+                    std::string log = "Stuck error";
+                    ROS_INFO("%s", log.c_str());
+                    ros::Duration RESULT_TIME = ros::Time::now() - timer_hp;
+                    std::ofstream results_file;
+                    results_file.open("results.txt");
+                    results_file << "ELAPSED TIME: " << RESULT_TIME << "\n";
+                    results_file << "OBSTACLES COUNT: " << OBSTACLES_COUNT << "\n";
+                    results_file << "POINTS: " << list_to_string(POINTS) << "\n";
+                    size_t mem_after = process_memory();
+                    results_file << "MEMORY USAGE: " << (mem_after - mem_before) << "\n";
+                    results_file << "COMPLEXITY: MEDIUM\n";
+                    results_file << "CALCULATION TIME: -\n";
+                    results_file << "TOTAL TURN: " << sum_yaw << "\n";
+                    results_file.close();
+                    system("rosnode kill /go_to_point");
+                    system("rosnode kill /wall_follower");
+                    system("rosnode kill /wall_follower_left");
+                    reset_world();
+                    system(("kill " + std::to_string(pid)).c_str());
+                }
+                stuck_prev_pos = stuck_pos;
+            }
+
+            if ((count_state_time_ > 20 && calc_dist_points(st_point, position_) < 0.1) || return_ == "BAD") {
+                std::string log = "point cannot be reached";
+                POINTS.push_back(position_);
+                ROS_INFO("%s", log.c_str());
+                ros::Duration RESULT_TIME = ros::Time::now() - timer_hp;
+                std::ofstream results_file;
+                results_file.open("results.txt");
+                results_file << "ELAPSED TIME: " << RESULT_TIME << "\n";
+                results_file << "OBSTACLES COUNT: " << OBSTACLES_COUNT << "\n";
+                results_file << "POINTS: " << list_to_string(POINTS) << "\n";
+                size_t mem_after = process_memory();
+                results_file << "MEMORY USAGE: " << (mem_after - mem_before) << "\n";
+                results_file << "COMPLEXITY: EASY\n";
+                results_file << "CALCULATION TIME: -\n";
+                results_file << "TOTAL TURN: " << sum_yaw << "\n";
+                results_file.close();
+                system("rosnode kill /go_to_point");
+                system("rosnode kill /wall_follower");
+                reset_world();
+                system(("kill " + std::to_string(pid)).c_str());
+            }
+        } else if (state_ == 2) {
+            desired_yaw = atan2(desired_position_.y - position_.y, desired_position_.x - position_.x);
+            err_yaw = desired_yaw - yaw_;
+            geometry_msgs::Twist twist_msg;
+
+            while (std::fabs(err_yaw) > M_PI / 90) {
+                desired_yaw = atan2(desired_position_.y - position_.y, desired_position_.x - position_.x);
+                err_yaw = desired_yaw - yaw_;
+                twist_msg.angular.z = (err_yaw > 0) ? 0.7 : -0.7;
+                pub.publish(twist_msg);
+                twist_msg.angular.z = 0;
+                pub.publish(twist_msg);
+                double diff = std::fabs(yaw_ - yaw_before);
+
+                if (diff > 1) {
+                    sum_yaw += std::fabs(yaw_ + yaw_before);
+                } else {
+                    sum_yaw += std::fabs(yaw_before - yaw_);
+                }
+                yaw_before = yaw_;
+            }
+
+            if (regions_["front"] > 0.1 && regions_["front"] < 0.25) {
+                std::string log = "not the leave point, continuing circumnavigating";
+                ROS_INFO("%s", log.c_str());
+                computeTi_21();
+                change_state(1);
+            } else {
+                computeTi_21();
+            }
         }
+
+        count_loop_ += 1;
+        if (count_loop_ == 20) {
+            count_state_time_ += 1;
+            count_loop_ = 0;
+        }
+        
+        count_point += 1;
+        if (count_point == 25) {
+            count_point = 0;
+            POINTS.push_back(position_);
+        }
+        rate.sleep();
     }
 }
