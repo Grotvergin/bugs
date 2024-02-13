@@ -9,7 +9,5 @@
     <param name="initial_y" value="$(arg initial_y)" />
     <param name="des_pos_x" value="$(arg des_x)" />
     <param name="des_pos_y" value="$(arg des_y)" />
-    <node pkg="bug_alg" type="follow_wall.py" name="wall_follower" />
-    <node pkg="bug_alg" type="go_to_point.py" name="go_to_point" />
-    <node pkg="bug_alg" type="visbug21.py" name="bug2" output="screen" required="true"/>
+    <node pkg="bug_alg" type="visbug21" name="visbug21" />
 </launch>

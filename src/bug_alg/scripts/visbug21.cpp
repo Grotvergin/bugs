@@ -1,35 +1,44 @@
-#include "ros/ros.h"
-#include "geometry_msgs/Point.h"
-#include "geometry_msgs/Twist.h"
-#include "sensor_msgs/LaserScan.h"
-#include "nav_msgs/Odometry.h"
-#include "tf/transform_datatypes.h"
-#include "gazebo_msgs/ModelState.h"
-#include "gazebo_msgs/SetModelState.h"
-#include <tf/tf.h>
-#include <std_srvs/Empty.h>
-#include <std_srvs/EmptyRequest.h>
-#include <std_srvs/EmptyResponse.h>
-#include <std_srvs/SetBool.h>
-#include <std_srvs/SetBoolRequest.h>
-#include <std_srvs/SetBoolResponse.h>
-#include <std_srvs/Trigger.h>
-#include <std_srvs/TriggerRequest.h>
-#include <std_srvs/TriggerResponse.h>
-#include <algorithm>
-#include <vector>
-#include <cmath>
-#include <string>
-#include <sstream>
-#include <unistd.h>
-#include <ios>
-#include <iostream>
-#include <fstream>
-#include <optional>
-#include <utility>
-#include <map>
-#include <signal.h>
+#include "visbug21.h"
 
+int main(int argc, char **argv) {
+    // Initializing the VisBug21 algorithm with command line args
+    ros::init(argc, argv, "visbug21");
+    // Creating an instance of Class1
+    VisBug21 visbug21;
+    // Calling the main_logic() method to start the algorithm
+    visbug21.main_logic();
+    return EXIT_SUCCESS;
+}
+
+void VisBug21::main_logic() {
+    // Variable for sleeping between iterations of ros::spinOnce()
+    ros::Rate rate(RATE_FREQUENCY);
+    // Initially the robot goes to the goal (state 1 of the algorithm)
+    change_state(1);
+    while (nh.ok()) {
+        // Recording the change of yaw/position
+        monitor_indicators();
+        // Performing check of reaching the target
+        check_if_goal_is_reached();
+        switch (state) {
+            // Going to the point && checking wall in front of the robot
+            case 1:
+                go_to_point();
+                check_front_wall();
+                break;
+            // Following the wall && test target reachability && finding leave point
+            case 2:
+                wall_follower();
+                check_reachability();
+                check_leave_point();
+                break;
+        }
+        // Updating the main loop
+        ros::spinOnce();
+        // Sleeping for 1/RATE_FREQUENCY seconds
+        rate.sleep();
+    }
+}
 
 ros::ServiceClient srv_client_go_to_point_;
 ros::ServiceClient srv_client_wall_follower_;
