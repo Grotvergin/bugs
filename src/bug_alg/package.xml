@@ -9,7 +9,6 @@
   <maintainer email="ilyaspektor@mail.ru">Ilya Spektor</maintainer>
   <buildtool_depend>catkin</buildtool_depend>
   <depend>roscpp</depend>
-  <depend>rospy</depend>
   <depend>std_msgs</depend>
   <depend>sensor_msgs</depend>
   <depend>geometry_msgs</depend>
