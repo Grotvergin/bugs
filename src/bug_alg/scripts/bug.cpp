@@ -87,11 +87,11 @@ void BugAlg::kill_system() {
     system(str.c_str());
 }
 
-void BugAlg::go_to_point() {
+void BugAlg::go_to_point(geometry_msgs::Point point) {
     // Creating an empty twist message
     geometry_msgs::Twist msg;
     // Calculating the desired angle to the target
-    desired_yaw = atan2(goal_point.y - cur_pos.y, goal_point.x - cur_pos.x);
+    desired_yaw = atan2(point.y - cur_pos.y, point.x - cur_pos.x);
     // Calculating the error, which needs to be fixed
     err_yaw = normalize_angle(desired_yaw - cur_yaw);
     if (fabs(err_yaw) > YAW_PRECISION) {

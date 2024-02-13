@@ -121,7 +121,7 @@ protected:
     void kill_system();
 
     // Method for going to the point
-    void go_to_point();
+    void go_to_point(geometry_msgs::Point point);
 
     // Method for following the wall
     void wall_follower();

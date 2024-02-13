@@ -12,6 +12,7 @@
 #define FREE_SPACE_LEAVE 0.1
 // Buffer just in case, to avoid boundary case in testng target reachability
 #define BUFFER_CHECK_REACHABILITY 0.5
+#define VISION_RADIUS 1
 // Header, containing base class and common methods for any Bug algorithm
 #include "bug.h"
 
@@ -26,6 +27,8 @@ public:
     void check_front_wall();
     void check_reachability();
     bool cur_pos_is_Ti();
+    void computeTi21();
+    bool goal_is_visible();
 private:
     // Variable for intermediate temporary target points
     geometry_msgs::Point Ti_pos;
