@@ -86,8 +86,8 @@ protected:
     int obstacle_count = 0;
     double overall_distance = 0, prev_yaw = 0, sum_yaw = 0, prev_path_delta = 0;
 
-    // Variable for storing the main algorithm state
-    int state = 0;
+    // Variable for storing the main algorithm alg_state
+    int alg_state = 0;
 
     // Variables for tracking key path points
     geometry_msgs::Point cur_pos, last_path_point, start_point, goal_point;
@@ -101,9 +101,6 @@ protected:
     // Methods for processing responses from Laser&Odometry
     void clbk_odom(const nav_msgs::Odometry::ConstPtr &msg);
     void clbk_laser(const sensor_msgs::LaserScan::ConstPtr &msg);
-
-    // Virtual method for changing the state
-    virtual void change_state(int input_state) = 0;
 
     // Method returns distance between two points
     double calc_dist_points(geometry_msgs::Point A, geometry_msgs::Point B);
