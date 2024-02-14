@@ -53,7 +53,7 @@ void VisBug21::computeTi21() {
             if (goal_is_visible())
                 Ti_pos = goal_point;
             // Checking if Ti is on an obstacle boundary
-            else if (Ti_is_on_boundary())
+            else if (point_is_on_boundary(Ti_pos))
                 change_state_procedure(3);
             // In all other cases going to step 2
             else
@@ -61,29 +61,51 @@ void VisBug21::computeTi21() {
             break;
         // Candidates for Ti along the M-line are processed && hit points are defined
         case 2:
-            
+            Q_pos = search_endpoint_segment_Mline();
+            Ti_pos = Q_pos;
+            if (point_is_on_boundary(Q_pos)) {
+                H_pos = Q_pos;
+                X_pos = Q_pos;
+                change_state_procedure(3);
+            } else
+                change_state_procedure(4);
             break;
         // Candidates for Ti along obstacle boundaries are processed && leave points are defined
         case 3:
+            Q_pos = search_endpoint_segment_boundary();
+            if (boundary_crosses_Mline()) {
+                P_pos = search_boundary_Mline_intersection_point();
+                if (calc_dist_points(P_pos, goal_point) < calc_dist_points(H_pos, goal_point)) {
+                    X_pos = P_pos;
+                    if (!segment_crosses_obstacle(P_pos, goal_point)) {
+                        L_pos = P_pos;
+                        Ti_pos = P_pos;
+                        change_state_procedure(2);
+                    }
+                }
+            } else {
+                Ti_pos = Q_pos;
+                change_state_procedure(4);
+            }
+            check_reachability();
             break;
         // Candidates for Ti - points of M-line noncontiguous to previous sets of points - are processed
         case 4:
+            Q_pos = point_is_on_Mline(Ti_pos) ? Ti_pos : X_pos;
+            S_apostrophe_point = search_closest_to_goal_Mline_point();
+            if (calc_dist_points(S_apostrophe_point, goal_point) < calc_dist_points(Q_pos, goal_point) && is_in_main_semiplane()) {
+                Ti_pos = S_apostrophe_point;
+                change_state_procedure(2);
+            } else
+                change_state_procedure(1);
             break;
     }
-}
-
-bool Ti_is_on_boundary() {
-
 }
 
 bool VisBug21::cur_pos_is_Ti() {
     if (calc_dist_points(Ti_pos, cur_pos) < ACCURACY_CUR_POS_IS_Ti)
         return true;
     return false;
-}
-
-void VisBug21::check_reachability() {
-
 }
 
 void VisBug21::change_state_alg(int input_state) {

@@ -29,9 +29,20 @@ public:
     bool cur_pos_is_Ti();
     void computeTi21();
     bool goal_is_visible();
+    bool point_is_on_boundary(geometry_msgs::Point point);
+    geometry_msgs::Point search_endpoint_segment_Mline();
+    geometry_msgs::Point search_endpoint_segment_boundary();
+    bool boundary_crosses_Mline();
+    geometry_msgs::Point search_boundary_Mline_intersection_point();
+    bool segment_crosses_obstacle(geometry_msgs::Point A, geometry_msgs::Point B);
+    bool point_is_on_Mline(geometry_msgs::Point point);
+    bool Mline_is_seen();
+    geometry_msgs::Point search_closest_to_goal_Mline_point();
+    bool is_in_main_semiplane();
+
 private:
     // Variable for intermediate temporary target points
-    geometry_msgs::Point Ti_pos;
+    geometry_msgs::Point Ti_pos, Q_pos, H_pos, X_pos, P_pos, L_pos, S_apostrophe_point;
     // Variable for storing the state of the procedure
     int procedure_state;
     // Names of states for some logging messages
