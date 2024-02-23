@@ -23,12 +23,12 @@ public:
     virtual void main_logic() override;
     void change_state_alg(int input_state);
     void change_state_procedure(int input_state);
-    void check_leave_point();
-    void check_front_wall();
-    void check_reachability();
     bool cur_pos_is_Ti();
     void computeTi21();
     bool goal_is_visible();
+    void check_leave_point();
+    void check_front_wall();
+    void check_reachability();
     bool point_is_on_boundary(geometry_msgs::Point point);
     geometry_msgs::Point search_endpoint_segment_Mline();
     geometry_msgs::Point search_endpoint_segment_boundary();

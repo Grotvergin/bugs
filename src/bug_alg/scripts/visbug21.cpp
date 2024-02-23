@@ -102,6 +102,15 @@ void VisBug21::computeTi21() {
     }
 }
 
+bool VisBug21::goal_is_visible() {
+    // Checking if the goal is visible (distance to it is lower than radius of vision)
+    if (calc_dist_points(goal_point, cur_pos) < VISION_RADIUS) {
+        ROS_INFO_STREAM("Goal is visible");
+        return true;
+    }
+    return false;
+}
+
 bool VisBug21::cur_pos_is_Ti() {
     if (calc_dist_points(Ti_pos, cur_pos) < ACCURACY_CUR_POS_IS_Ti)
         return true;
