@@ -47,14 +47,13 @@ void VisBug21::main_logic() {
 
 VisBug21::VisBug21() {
     sub_spec_distances_laser = nh.subscribe("/scan", 1, &VisBug21::clbk_spec_distances_laser, this);
-    H_point_was_lost = true;
 }
 
-// FIX DEGREES HERE
 void VisBug21::clbk_spec_distances_laser(const sensor_msgs::LaserScan::ConstPtr &msg) {
-    regions["to_goal"] = std::min(msg->ranges[0], BASE_DIST);
-    regions["to_Ti"] = std::min(msg->ranges[0], BASE_DIST);
-    regions["to_H"] = std::min(msg->ranges[0], BASE_DIST);
+    yaw_goal = atan2(goal_point.y - cur_pos.y, goal_point.x - cur_pos.x);
+    degree_goal = normalize_angle(yaw_goal - cur_yaw);
+    if (degree_goal < 0) degree_goal += 360;
+    regions["to_goal"] = std::min(msg->ranges[degree_goal], BASE_DIST);
 }
 
 void VisBug21::computeTi21() {
@@ -79,7 +78,6 @@ void VisBug21::computeTi21() {
                 prev_H_pos = H_pos;
                 H_pos = Q_pos;
                 X_pos = Q_pos;
-                H_point_was_lost = false;
                 change_state_procedure(3);
             } else
                 change_state_procedure(4);
@@ -116,6 +114,14 @@ void VisBug21::computeTi21() {
     }
 }
 
+bool VisBug21::point_is_on_Mline(geometry_msgs::Point point) {
+    double A = start_point.y - goal_point.y;
+    double B = goal_point.x - start_point.x;
+    double C = start_point.x * goal_point.y - goal_point.x * start_point.y;
+    double distance = fabs(A * point.x + B * point.y + C) / sqrt(pow(A, 2) + pow(B, 2));
+    return distance <= ACCURACY_MLINE;
+}
+
 bool VisBug21::is_in_main_semiplane() {
     double A = goal_point.y - start_point.y;
     double B = start_point.x - goal_point.x;
@@ -127,10 +133,7 @@ bool VisBug21::is_in_main_semiplane() {
 }
 
 void VisBug21::check_reachability() {
-    if (!H_point_was_lost && regions["to_H"] == BASE_DIST)
-        H_point_was_lost = true;
-    // Add condition about H is on (TiQ)
-    if (H_point_was_lost && calc_dist_points(H_pos, prev_H_pos) < BUFFER_CHECK_REACHABILITY) {
+    if (calc_dist_points(H_pos, prev_H_pos) < BUFFER_CHECK_REACHABILITY) {
         stop_robot();
         create_report("Target can not be reached.");
         kill_system();

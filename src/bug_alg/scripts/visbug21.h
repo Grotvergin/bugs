@@ -14,6 +14,8 @@
 #define BUFFER_CHECK_REACHABILITY 0.5
 // Radius of vision for the robot
 #define VISION_RADIUS 1
+// Accuracy for determening whether the point lies on Mline
+#define ACCURACY_MLINE 0.2
 // Header, containing base class and common methods for any Bug algorithm
 #include "bug.h"
 
@@ -30,17 +32,17 @@ public:
     bool is_in_main_semiplane();
     void check_reachability();
     void clbk_spec_distances_laser(const sensor_msgs::LaserScan::ConstPtr &msg);
+    bool point_is_on_Mline(geometry_msgs::Point point);
     geometry_msgs::Point search_endpoint_segment_Mline();
     geometry_msgs::Point search_endpoint_segment_boundary();
     bool boundary_crosses_Mline();
     geometry_msgs::Point search_boundary_Mline_intersection_point();
     bool segment_crosses_obstacle(geometry_msgs::Point A, geometry_msgs::Point B);
-    bool point_is_on_Mline(geometry_msgs::Point point);
     geometry_msgs::Point search_closest_to_goal_Mline_point();
     bool point_is_on_boundary(geometry_msgs::Point point);
 
 private:
-    bool H_point_was_lost;
+    double yaw_goal, degree_goal, yaw_Ti, degree_Ti;
     ros::Subscriber sub_spec_distances_laser;
     // Variable for intermediate temporary target points
     geometry_msgs::Point Ti_pos, Q_pos, H_pos, X_pos, P_pos, L_pos, S_apostrophe_point, prev_H_pos;
