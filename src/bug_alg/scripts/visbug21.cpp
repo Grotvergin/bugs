@@ -45,6 +45,18 @@ void VisBug21::main_logic() {
     }
 }
 
+VisBug21::VisBug21() {
+    sub_spec_distances_laser = nh.subscribe("/scan", 1, &VisBug21::clbk_spec_distances_laser, this);
+    H_point_was_lost = true;
+}
+
+// FIX DEGREES HERE
+void VisBug21::clbk_spec_distances_laser(const sensor_msgs::LaserScan::ConstPtr &msg) {
+    regions["to_goal"] = std::min(msg->ranges[0], BASE_DIST);
+    regions["to_Ti"] = std::min(msg->ranges[0], BASE_DIST);
+    regions["to_H"] = std::min(msg->ranges[0], BASE_DIST);
+}
+
 void VisBug21::computeTi21() {
     switch (procedure_state) {
         // The last stage when target is visible
@@ -64,8 +76,10 @@ void VisBug21::computeTi21() {
             Q_pos = search_endpoint_segment_Mline();
             Ti_pos = Q_pos;
             if (point_is_on_boundary(Q_pos)) {
+                prev_H_pos = H_pos;
                 H_pos = Q_pos;
                 X_pos = Q_pos;
+                H_point_was_lost = false;
                 change_state_procedure(3);
             } else
                 change_state_procedure(4);
@@ -102,9 +116,30 @@ void VisBug21::computeTi21() {
     }
 }
 
+bool VisBug21::is_in_main_semiplane() {
+    double A = goal_point.y - start_point.y;
+    double B = start_point.x - goal_point.x;
+    double C = goal_point.x * start_point.y - start_point.x * goal_point.y;
+    double D = A * cur_pos.x + B * cur_pos.y + C;
+    if ((D >= 0 && DIR_IS_LEFT) || (D <= 0 && !DIR_IS_LEFT))
+        return true;
+    return false;
+}
+
+void VisBug21::check_reachability() {
+    if (!H_point_was_lost && regions["to_H"] == BASE_DIST)
+        H_point_was_lost = true;
+    // Add condition about H is on (TiQ)
+    if (H_point_was_lost && calc_dist_points(H_pos, prev_H_pos) < BUFFER_CHECK_REACHABILITY) {
+        stop_robot();
+        create_report("Target can not be reached.");
+        kill_system();
+    }
+}
+
 bool VisBug21::goal_is_visible() {
-    // Checking if the goal is visible (distance to it is lower than radius of vision)
-    if (calc_dist_points(goal_point, cur_pos) < VISION_RADIUS) {
+    // Checking if free space it the direction of goal is less than vision radius
+    if (regions["to_goal"] < VISION_RADIUS) {
         ROS_INFO_STREAM("Goal is visible");
         return true;
     }

@@ -12,6 +12,7 @@
 #define FREE_SPACE_LEAVE 0.1
 // Buffer just in case, to avoid boundary case in testng target reachability
 #define BUFFER_CHECK_REACHABILITY 0.5
+// Radius of vision for the robot
 #define VISION_RADIUS 1
 // Header, containing base class and common methods for any Bug algorithm
 #include "bug.h"
@@ -19,30 +20,30 @@
 // The main class for the algorithm
 class VisBug21 final : public BugAlg {
 public:
-    VisBug21() = default;
+    VisBug21();
     virtual void main_logic() override;
     void change_state_alg(int input_state);
     void change_state_procedure(int input_state);
     bool cur_pos_is_Ti();
     void computeTi21();
     bool goal_is_visible();
-    void check_leave_point();
-    void check_front_wall();
+    bool is_in_main_semiplane();
     void check_reachability();
-    bool point_is_on_boundary(geometry_msgs::Point point);
+    void clbk_spec_distances_laser(const sensor_msgs::LaserScan::ConstPtr &msg);
     geometry_msgs::Point search_endpoint_segment_Mline();
     geometry_msgs::Point search_endpoint_segment_boundary();
     bool boundary_crosses_Mline();
     geometry_msgs::Point search_boundary_Mline_intersection_point();
     bool segment_crosses_obstacle(geometry_msgs::Point A, geometry_msgs::Point B);
     bool point_is_on_Mline(geometry_msgs::Point point);
-    bool Mline_is_seen();
     geometry_msgs::Point search_closest_to_goal_Mline_point();
-    bool is_in_main_semiplane();
+    bool point_is_on_boundary(geometry_msgs::Point point);
 
 private:
+    bool H_point_was_lost;
+    ros::Subscriber sub_spec_distances_laser;
     // Variable for intermediate temporary target points
-    geometry_msgs::Point Ti_pos, Q_pos, H_pos, X_pos, P_pos, L_pos, S_apostrophe_point;
+    geometry_msgs::Point Ti_pos, Q_pos, H_pos, X_pos, P_pos, L_pos, S_apostrophe_point, prev_H_pos;
     // Variable for storing the state of the procedure
     int procedure_state;
     // Names of states for some logging messages

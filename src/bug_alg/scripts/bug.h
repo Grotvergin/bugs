@@ -62,6 +62,10 @@
 #define ALG_COMPLEXITY "medium"
 #endif
 
+#ifndef BASE_DIST
+#define BASE_DIST 10.0f
+#endif
+
 class BugAlg {
 public:
     BugAlg();

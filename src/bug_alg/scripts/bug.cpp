@@ -174,13 +174,13 @@ double BugAlg::normalize_angle(double angle) {
 void BugAlg::clbk_laser(const sensor_msgs::LaserScan::ConstPtr &msg) {
     // Block of so-called regions, key areas, which the robot uses for orientation
     // In each direction we choose the smallest distance overall
-    regions["left"] = std::min(*std::min_element(msg->ranges.begin() + 57, msg->ranges.begin() + 102), 10.0f);
-    regions["fleft"] = std::min(*std::min_element(msg->ranges.begin() + 26, msg->ranges.begin() + 56), 10.0f);
-    regions["front"] = std::min(std::min(*std::min_element(msg->ranges.begin(), msg->ranges.begin() + 22), *std::min_element(msg->ranges.begin() + 334, msg->ranges.begin() + 359)), 10.0f);
-    regions["fright"] = std::min(*std::min_element(msg->ranges.begin() + 303, msg->ranges.begin() + 333), 10.0f);
-    regions["right"] = std::min(*std::min_element(msg->ranges.begin() + 257, msg->ranges.begin() + 302), 10.0f);
-    regions["right45"] = std::min(msg->ranges[315], 10.0f);
-    regions["left45"] = std::min(msg->ranges[45], 10.0f);
+    regions["left"] = std::min(*std::min_element(msg->ranges.begin() + 57, msg->ranges.begin() + 102), BASE_DIST);
+    regions["fleft"] = std::min(*std::min_element(msg->ranges.begin() + 26, msg->ranges.begin() + 56), BASE_DIST);
+    regions["front"] = std::min(std::min(*std::min_element(msg->ranges.begin(), msg->ranges.begin() + 22), *std::min_element(msg->ranges.begin() + 334, msg->ranges.begin() + 359)), BASE_DIST);
+    regions["fright"] = std::min(*std::min_element(msg->ranges.begin() + 303, msg->ranges.begin() + 333), BASE_DIST);
+    regions["right"] = std::min(*std::min_element(msg->ranges.begin() + 257, msg->ranges.begin() + 302), BASE_DIST);
+    regions["right45"] = std::min(msg->ranges[315], BASE_DIST);
+    regions["left45"] = std::min(msg->ranges[45], BASE_DIST);
 }
 
 void BugAlg::clbk_odom(const nav_msgs::Odometry::ConstPtr &msg) {
