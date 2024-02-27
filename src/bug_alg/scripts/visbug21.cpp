@@ -51,9 +51,13 @@ VisBug21::VisBug21() {
 
 void VisBug21::clbk_spec_distances_laser(const sensor_msgs::LaserScan::ConstPtr &msg) {
     yaw_goal = atan2(goal_point.y - cur_pos.y, goal_point.x - cur_pos.x);
-    degree_goal = normalize_angle(yaw_goal - cur_yaw);
+    degree_goal = normalize_angle(yaw_goal - cur_yaw) * 180 / M_PI;
     if (degree_goal < 0) degree_goal += 360;
     regions["to_goal"] = std::min(msg->ranges[degree_goal], BASE_DIST);
+    yaw_endpoint_Mline = atan2(potential_Mline_point.y - cur_pos.y, potential_Mline_point.x - cur_pos.x);
+    degree_endpoint_Mline = normalize_angle(yaw_endpoint_Mline - cur_yaw) * 180 / M_PI;
+    if (degree_endpoint_Mline < 0) degree_endpoint_Mline += 360;
+    regions["to_Mline"] = std::min(msg->ranges[degree_endpoint_Mline], BASE_DIST);
 }
 
 void VisBug21::computeTi21() {
@@ -85,7 +89,7 @@ void VisBug21::computeTi21() {
         // Candidates for Ti along obstacle boundaries are processed && leave points are defined
         case 3:
             Q_pos = search_endpoint_segment_boundary();
-            if (boundary_crosses_Mline()) {
+            if (segment_crosses_Mline(Ti_pos, Q_pos)) {
                 P_pos = search_boundary_Mline_intersection_point();
                 if (calc_dist_points(P_pos, goal_point) < calc_dist_points(H_pos, goal_point)) {
                     X_pos = P_pos;
@@ -104,7 +108,7 @@ void VisBug21::computeTi21() {
         // Candidates for Ti - points of M-line noncontiguous to previous sets of points - are processed
         case 4:
             Q_pos = point_is_on_Mline(Ti_pos) ? Ti_pos : X_pos;
-            S_apostrophe_point = search_closest_to_goal_Mline_point();
+            S_apostrophe_point = search_endpoint_segment_Mline();
             if (calc_dist_points(S_apostrophe_point, goal_point) < calc_dist_points(Q_pos, goal_point) && is_in_main_semiplane()) {
                 Ti_pos = S_apostrophe_point;
                 change_state_procedure(2);
@@ -112,6 +116,76 @@ void VisBug21::computeTi21() {
                 change_state_procedure(1);
             break;
     }
+}
+
+bool VisBug21::is_between(double x, double b1, double b2) {
+    return (((x >= (b1 - ACCURACY_LINES)) && (x <= (b2 + ACCURACY_LINES))) || ((x >= (b2 - ACCURACY_LINES)) && (x <= (b1 + ACCURACY_LINES))));
+}
+
+bool VisBug21::segment_crosses_Mline(geometry_msgs::Point A, geometry_msgs::Point B) {
+    double dx1 = B.x - A.x;
+    double dx2 = goal_point.x - start_point.x;
+    double dy1 = B.y - A.y;
+    double dy2 = goal_point.y - start_point.y;
+
+    if (abs(dx1) < ACCURACY_LINES && abs(dx2) < ACCURACY_LINES)
+        return false;
+    if (abs((dy1 / dx1) - (dy2 / dx2)) < ACCURACY_LINES)
+        return false;
+
+    double xcol = ((dx1 * dx2) * (start_point.y - A.y) - start_point.x * dy2 * dx1 + A.x * dy1 * dx2) / (dy1 * dx2 - dy2 * dx1);
+    double ycol = 0;
+    if (dx1 < ACCURACY_LINES)
+        ycol = ((xcol * dy2) + (start_point.y * dx2) - (start_point.x * dy2)) / dx2;
+    else
+        ycol = ((xcol * dy1) + (A.y * dx1) - (A.x * dy1)) / dx1;
+
+    return is_between(xcol, A.x, B.x) && is_between(ycol, A.y, B.y) && is_between(xcol, start_point.x, goal_point.x) && is_between(ycol, start_point.y, goal_point.y);
+}
+
+geometry_msgs::Point VisBug21::math_search_endpoint_Mline() {
+    geometry_msgs::Point first, second;
+    // Calculating the slope
+    double k = (goal_point.y - start_point.y) / (goal_point.x - start_point.x);
+    // Calculating the y-axis offset
+    double b = start_point.y - k * start_point.x;
+
+    double a = 1 + k * k;
+    double b_circle = 2 * k * (b - cur_pos.y) - 2 * cur_pos.x;
+    double c = pow(cur_pos.x, 2) + pow((b - cur_pos.y), 2) + pow(VISION_RADIUS, 2);
+
+    double D = pow(b_circle, 2) - 4 * a * c;
+    if (D < 0) {
+        ROS_INFO_STREAM("No intersections found");
+        first.x = first.y = first.z = 0;
+        return first;
+    }
+
+    first.x = (-b_circle + sqrt(D)) / (2 * a);
+    second.x = (-b_circle - sqrt(D)) / (2 * a);
+    first.y = k * first.x + b;
+    second.y = k * second.x + b;
+
+    double dist_first = sqrt(pow(first.x - goal_point.x, 2) + pow(first.y - goal_point.y, 2));
+    double dist_second = sqrt(pow(second.x - goal_point.x, 2) + pow(second.y - goal_point.y, 2));
+
+    if (dist_first <= dist_second)
+        return first;
+    return second;
+}
+
+geometry_msgs::Point VisBug21::search_endpoint_segment_Mline() {
+    potential_Mline_point = math_search_endpoint_Mline();
+    while(calc_dist_points(cur_pos, potential_Mline_point) > regions["to_Mline"])
+        move_along_Mline();
+    return potential_Mline_point;
+}
+
+void VisBug21::move_along_Mline() {
+    double l = sqrt(pow(goal_point.x - start_point.x, 2) + pow(goal_point.y - start_point.y, 2));
+    double t = STEP_MLINE / l;
+    potential_Mline_point.x = start_point.x + t * (goal_point.x - start_point.x);
+    potential_Mline_point.y = start_point.y + t * (goal_point.y - start_point.y);
 }
 
 bool VisBug21::point_is_on_Mline(geometry_msgs::Point point) {
