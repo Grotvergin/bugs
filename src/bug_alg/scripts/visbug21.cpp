@@ -58,6 +58,19 @@ void VisBug21::clbk_spec_distances_laser(const sensor_msgs::LaserScan::ConstPtr 
     degree_endpoint_Mline = normalize_angle(yaw_endpoint_Mline - cur_yaw) * 180 / M_PI;
     if (degree_endpoint_Mline < 0) degree_endpoint_Mline += 360;
     regions["to_Mline"] = std::min(msg->ranges[degree_endpoint_Mline], BASE_DIST);
+    regions["to_boundary"] = std::min(msg->ranges[search_angle_endpoint_segment_boundary(msg)], BASE_DIST);
+}
+
+double VisBug21::search_angle_endpoint_segment_boundary(const sensor_msgs::LaserScan::ConstPtr &msg) {
+    double max_dist = 0;
+    double des_angle = 0;
+    for (int i = 0; i <= 360; ++i) {
+        if (msg->ranges[i] > max_dist && msg->ranges[i] <= VISION_RADIUS) {
+            max_dist = msg->ranges[i];
+            des_angle = i;
+        }
+    }
+    return des_angle;
 }
 
 void VisBug21::computeTi21() {
@@ -90,10 +103,10 @@ void VisBug21::computeTi21() {
         case 3:
             Q_pos = search_endpoint_segment_boundary();
             if (segment_crosses_Mline(Ti_pos, Q_pos)) {
-                P_pos = search_boundary_Mline_intersection_point();
+                P_pos = search_intersection_point(start_point, goal_point, Ti_pos, Q_pos);
                 if (calc_dist_points(P_pos, goal_point) < calc_dist_points(H_pos, goal_point)) {
                     X_pos = P_pos;
-                    if (!segment_crosses_obstacle(P_pos, goal_point)) {
+                    if (segment_not_crosses_obstacle(P_pos, goal_point)) {
                         L_pos = P_pos;
                         Ti_pos = P_pos;
                         change_state_procedure(2);
@@ -116,6 +129,30 @@ void VisBug21::computeTi21() {
                 change_state_procedure(1);
             break;
     }
+}
+
+bool VisBug21::segment_not_crosses_obstacle(geometry_msgs::Point A, geometry_msgs::Point B) {
+    geometry_msgs::Point test = search_intersection_point(P_pos, goal_point, Ti_pos, Q_pos);
+    if (test.x != P_pos.x && test.y != P_pos.y);
+        return true;
+    return false;
+}
+
+geometry_msgs::Point VisBug21::search_intersection_point(geometry_msgs::Point A, geometry_msgs::Point B, geometry_msgs::Point C, geometry_msgs::Point D) {
+    geometry_msgs::Point result;
+    result.x = result.y = result.z = 0;
+    double denom = (D.y - C.y) * (B.x - A.x) - (D.x - C.x) * (B.y - A.y);
+    if (denom == 0)
+        return result;
+    double ua = ((D.x - C.x) * (A.y - C.y) - (D.y - C.y) * (A.x - C.x)) / denom;
+    if (ua < 0 || ua > 1)
+        return result;
+    double ub = ((B.x - A.x) * (A.y - C.y) - (B.y - A.y) * (A.x - C.x)) / denom;
+    if (ub < 0 || ub > 1)
+        return result;
+    result.x = A.x + ua * (B.x - A.x);
+    result.y = A.y + ua * (B.y - A.y);
+    return result;
 }
 
 bool VisBug21::is_between(double x, double b1, double b2) {

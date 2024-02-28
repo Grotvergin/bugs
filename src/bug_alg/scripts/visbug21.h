@@ -41,9 +41,10 @@ public:
     void VisBug21::move_along_Mline();
     bool segment_crosses_Mline(geometry_msgs::Point A, geometry_msgs::Point B);
     bool VisBug21::is_between(double x, double b1, double b2);
+    double search_angle_endpoint_segment_boundary(const sensor_msgs::LaserScan::ConstPtr &msg);
+    geometry_msgs::Point search_intersection_point(geometry_msgs::Point A, geometry_msgs::Point B, geometry_msgs::Point C, geometry_msgs::Point D);
+    bool segment_not_crosses_obstacle(geometry_msgs::Point A, geometry_msgs::Point B);
     geometry_msgs::Point search_endpoint_segment_boundary();
-    geometry_msgs::Point search_boundary_Mline_intersection_point();
-    bool segment_crosses_obstacle(geometry_msgs::Point A, geometry_msgs::Point B);
     bool point_is_on_boundary(geometry_msgs::Point point);
 
 private:
