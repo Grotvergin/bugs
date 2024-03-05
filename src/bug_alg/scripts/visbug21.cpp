@@ -131,6 +131,10 @@ void VisBug21::computeTi21() {
     }
 }
 
+geometry_msgs::Point VisBug21::search_endpoint_segment_boundary() {
+    
+}
+
 bool VisBug21::segment_not_crosses_obstacle(geometry_msgs::Point A, geometry_msgs::Point B) {
     geometry_msgs::Point test = search_intersection_point(P_pos, goal_point, Ti_pos, Q_pos);
     if (test.x != P_pos.x && test.y != P_pos.y);
