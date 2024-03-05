@@ -19,6 +19,7 @@
 // Step for moving along Mline to search appropriate Mline point
 #define STEP_MLINE 0.1
 #define ACCURACY_LINES 0.01f
+#define DELTA_OBSTACLE_DECISION 0.1
 // Header, containing base class and common methods for any Bug algorithm
 #include "bug.h"
 
@@ -48,7 +49,7 @@ public:
     bool point_is_on_boundary(geometry_msgs::Point point);
 
 private:
-    double yaw_goal, degree_goal, yaw_endpoint_Mline, degree_endpoint_Mline;
+    double yaw_goal, degree_goal, yaw_endpoint_Mline, degree_endpoint_Mline, angle_to_boundary, angle_for_decision;
     ros::Subscriber sub_spec_distances_laser;
     // Variable for intermediate temporary target points
     geometry_msgs::Point Ti_pos, Q_pos, H_pos, X_pos, P_pos, L_pos, S_apostrophe_point, prev_H_pos, potential_Mline_point;

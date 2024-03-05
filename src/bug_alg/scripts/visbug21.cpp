@@ -45,34 +45,6 @@ void VisBug21::main_logic() {
     }
 }
 
-VisBug21::VisBug21() {
-    sub_spec_distances_laser = nh.subscribe("/scan", 1, &VisBug21::clbk_spec_distances_laser, this);
-}
-
-void VisBug21::clbk_spec_distances_laser(const sensor_msgs::LaserScan::ConstPtr &msg) {
-    yaw_goal = atan2(goal_point.y - cur_pos.y, goal_point.x - cur_pos.x);
-    degree_goal = normalize_angle(yaw_goal - cur_yaw) * 180 / M_PI;
-    if (degree_goal < 0) degree_goal += 360;
-    regions["to_goal"] = std::min(msg->ranges[degree_goal], BASE_DIST);
-    yaw_endpoint_Mline = atan2(potential_Mline_point.y - cur_pos.y, potential_Mline_point.x - cur_pos.x);
-    degree_endpoint_Mline = normalize_angle(yaw_endpoint_Mline - cur_yaw) * 180 / M_PI;
-    if (degree_endpoint_Mline < 0) degree_endpoint_Mline += 360;
-    regions["to_Mline"] = std::min(msg->ranges[degree_endpoint_Mline], BASE_DIST);
-    regions["to_boundary"] = std::min(msg->ranges[search_angle_endpoint_segment_boundary(msg)], BASE_DIST);
-}
-
-double VisBug21::search_angle_endpoint_segment_boundary(const sensor_msgs::LaserScan::ConstPtr &msg) {
-    double max_dist = 0;
-    double des_angle = 0;
-    for (int i = 0; i <= 360; ++i) {
-        if (msg->ranges[i] > max_dist && msg->ranges[i] <= VISION_RADIUS) {
-            max_dist = msg->ranges[i];
-            des_angle = i;
-        }
-    }
-    return des_angle;
-}
-
 void VisBug21::computeTi21() {
     switch (procedure_state) {
         // The last stage when target is visible
@@ -131,8 +103,59 @@ void VisBug21::computeTi21() {
     }
 }
 
+bool VisBug21::point_is_on_boundary(geometry_msgs::Point point) {
+    double needed_yaw = atan2(point.y - cur_pos.y, point.x - cur_pos.x);
+    double degree = normalize_angle(needed_yaw - cur_yaw);
+    degree = degree * 180 / M_PI;
+    if degree < 0
+        degree += 360;
+    angle_for_decision = degree;
+    double math_dist = calc_dist_points(cur_pos, point);
+    if (regions["to_unknown"] - math_dist < DELTA_OBSTACLE_DECISION)
+        return true;
+    return false;
+}
+
+VisBug21::VisBug21() {
+    sub_spec_distances_laser = nh.subscribe("/scan", 1, &VisBug21::clbk_spec_distances_laser, this);
+}
+
+void VisBug21::clbk_spec_distances_laser(const sensor_msgs::LaserScan::ConstPtr &msg) {
+    yaw_goal = atan2(goal_point.y - cur_pos.y, goal_point.x - cur_pos.x);
+    degree_goal = normalize_angle(yaw_goal - cur_yaw) * 180 / M_PI;
+    if (degree_goal < 0) degree_goal += 360;
+    regions["to_goal"] = std::min(msg->ranges[degree_goal], VISION_RADIUS + 5);
+    yaw_endpoint_Mline = atan2(potential_Mline_point.y - cur_pos.y, potential_Mline_point.x - cur_pos.x);
+    degree_endpoint_Mline = normalize_angle(yaw_endpoint_Mline - cur_yaw) * 180 / M_PI;
+    if (degree_endpoint_Mline < 0) degree_endpoint_Mline += 360;
+    regions["to_Mline"] = std::min(msg->ranges[degree_endpoint_Mline], VISION_RADIUS + 5);
+    angle_to_boundary = search_angle_endpoint_segment_boundary(msg);
+    regions["to_boundary"] = std::min(msg->ranges[angle_to_boundary], VISION_RADIUS + 5);
+    regions["to_unknown"] = std::min(msg->ranges[angle_for_decision], VISION_RADIUS + 5);
+}
+
+double VisBug21::search_angle_endpoint_segment_boundary(const sensor_msgs::LaserScan::ConstPtr &msg) {
+    double max_dist = 0;
+    double des_angle = 0;
+    for (int i = 0; i <= 360; ++i) {
+        if (msg->ranges[i] > max_dist && msg->ranges[i] <= VISION_RADIUS) {
+            max_dist = msg->ranges[i];
+            des_angle = i;
+        }
+    }
+    return des_angle;
+}
+
 geometry_msgs::Point VisBug21::search_endpoint_segment_boundary() {
-    
+    double angle_x = cur_yaw * 180 / M_PI;
+    double normalised_boundary_angle = 0;
+    if (angle_to_boundary > 180)
+        normalised_boundary_angle = 360 - angle_to_boundary;
+    else
+        normalised_boundary_angle = -angle_to_boundary;
+    Q.x = cur_pos.x + (regions["to_boundary"] * cos(normalised_boundary_angle - angle_x));
+    Q.y = cur_pos.y + (regions["to_boundary"] * sin (normalised_boundary_angle - angle_x));
+    return Q;
 }
 
 bool VisBug21::segment_not_crosses_obstacle(geometry_msgs::Point A, geometry_msgs::Point B) {
