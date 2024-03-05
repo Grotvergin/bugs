@@ -9,5 +9,5 @@
     <param name="initial_y" value="$(arg initial_y)" />
     <param name="des_pos_x" value="$(arg des_x)" />
     <param name="des_pos_y" value="$(arg des_y)" />
-    <node pkg="bug_alg" type="visbug21" name="visbug21" />
+    <node pkg="bug_alg" type="visbug21" name="visbug21" output="screen"/>
 </launch>

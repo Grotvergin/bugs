@@ -13,7 +13,7 @@
 // Buffer just in case, to avoid boundary case in testng target reachability
 #define BUFFER_CHECK_REACHABILITY 0.5
 // Radius of vision for the robot
-#define VISION_RADIUS 1
+#define VISION_RADIUS 1.0f
 // Accuracy for determening whether the point lies on Mline
 #define ACCURACY_MLINE 0.2
 // Step for moving along Mline to search appropriate Mline point
@@ -38,10 +38,10 @@ public:
     void clbk_spec_distances_laser(const sensor_msgs::LaserScan::ConstPtr &msg);
     bool point_is_on_Mline(geometry_msgs::Point point);
     geometry_msgs::Point search_endpoint_segment_Mline();
-    geometry_msgs::Point VisBug21::math_search_endpoint_Mline();
-    void VisBug21::move_along_Mline();
+    geometry_msgs::Point math_search_endpoint_Mline();
+    void move_along_Mline();
     bool segment_crosses_Mline(geometry_msgs::Point A, geometry_msgs::Point B);
-    bool VisBug21::is_between(double x, double b1, double b2);
+    bool is_between(double x, double b1, double b2);
     double search_angle_endpoint_segment_boundary(const sensor_msgs::LaserScan::ConstPtr &msg);
     geometry_msgs::Point search_intersection_point(geometry_msgs::Point A, geometry_msgs::Point B, geometry_msgs::Point C, geometry_msgs::Point D);
     bool segment_not_crosses_obstacle(geometry_msgs::Point A, geometry_msgs::Point B);

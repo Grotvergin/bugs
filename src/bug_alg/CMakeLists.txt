@@ -18,8 +18,8 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 include_directories(include ${catkin_INCLUDE_DIRS} ${GAZEBO_INCLUDE_DIRS})
-add_executable(class1 scripts/class1.cpp scripts/bug.cpp)
-target_link_libraries(class1 ${catkin_LIBRARIES} ${GAZEBO_LIBRARIES})
+add_executable(visbug21 scripts/visbug21.cpp scripts/bug.cpp)
+target_link_libraries(visbug21 ${catkin_LIBRARIES} ${GAZEBO_LIBRARIES})
 
 
 find_package(gazebo REQUIRED)
@@ -48,7 +48,7 @@ catkin_package(
 # Install
 ################################################################################
 
-install(TARGETS class1
+install(TARGETS visbug21
   RUNTIME DESTINATION ${CATKIN_DEVEL_PREFIX}/${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

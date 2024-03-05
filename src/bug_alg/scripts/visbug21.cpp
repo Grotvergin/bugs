@@ -107,7 +107,7 @@ bool VisBug21::point_is_on_boundary(geometry_msgs::Point point) {
     double needed_yaw = atan2(point.y - cur_pos.y, point.x - cur_pos.x);
     double degree = normalize_angle(needed_yaw - cur_yaw);
     degree = degree * 180 / M_PI;
-    if degree < 0
+    if (degree < 0)
         degree += 360;
     angle_for_decision = degree;
     double math_dist = calc_dist_points(cur_pos, point);
@@ -124,14 +124,14 @@ void VisBug21::clbk_spec_distances_laser(const sensor_msgs::LaserScan::ConstPtr 
     yaw_goal = atan2(goal_point.y - cur_pos.y, goal_point.x - cur_pos.x);
     degree_goal = normalize_angle(yaw_goal - cur_yaw) * 180 / M_PI;
     if (degree_goal < 0) degree_goal += 360;
-    regions["to_goal"] = std::min(msg->ranges[degree_goal], VISION_RADIUS + 5);
+    regions["to_goal"] = std::min(msg->ranges[degree_goal], VISION_RADIUS);
     yaw_endpoint_Mline = atan2(potential_Mline_point.y - cur_pos.y, potential_Mline_point.x - cur_pos.x);
     degree_endpoint_Mline = normalize_angle(yaw_endpoint_Mline - cur_yaw) * 180 / M_PI;
     if (degree_endpoint_Mline < 0) degree_endpoint_Mline += 360;
-    regions["to_Mline"] = std::min(msg->ranges[degree_endpoint_Mline], VISION_RADIUS + 5);
+    regions["to_Mline"] = std::min(msg->ranges[degree_endpoint_Mline], VISION_RADIUS);
     angle_to_boundary = search_angle_endpoint_segment_boundary(msg);
-    regions["to_boundary"] = std::min(msg->ranges[angle_to_boundary], VISION_RADIUS + 5);
-    regions["to_unknown"] = std::min(msg->ranges[angle_for_decision], VISION_RADIUS + 5);
+    regions["to_boundary"] = std::min(msg->ranges[angle_to_boundary], VISION_RADIUS);
+    regions["to_unknown"] = std::min(msg->ranges[angle_for_decision], VISION_RADIUS);
 }
 
 double VisBug21::search_angle_endpoint_segment_boundary(const sensor_msgs::LaserScan::ConstPtr &msg) {
@@ -153,9 +153,9 @@ geometry_msgs::Point VisBug21::search_endpoint_segment_boundary() {
         normalised_boundary_angle = 360 - angle_to_boundary;
     else
         normalised_boundary_angle = -angle_to_boundary;
-    Q.x = cur_pos.x + (regions["to_boundary"] * cos(normalised_boundary_angle - angle_x));
-    Q.y = cur_pos.y + (regions["to_boundary"] * sin (normalised_boundary_angle - angle_x));
-    return Q;
+    Q_pos.x = cur_pos.x + (regions["to_boundary"] * cos(normalised_boundary_angle - angle_x));
+    Q_pos.y = cur_pos.y + (regions["to_boundary"] * sin (normalised_boundary_angle - angle_x));
+    return Q_pos;
 }
 
 bool VisBug21::segment_not_crosses_obstacle(geometry_msgs::Point A, geometry_msgs::Point B) {
