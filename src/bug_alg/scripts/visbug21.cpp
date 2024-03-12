@@ -15,7 +15,6 @@ void VisBug21::main_logic() {
     ros::Rate rate(RATE_FREQUENCY);
     // Initially the robot goes to the goal (state 1 of the algorithm)
     change_state_alg(1);
-    change_state_procedure(1);
     while (nh.ok()) {
         // Recording the change of yaw/position
         monitor_indicators();
@@ -23,7 +22,6 @@ void VisBug21::main_logic() {
         check_if_goal_is_reached();
         // Computing procedure ComputeTi-21
         computeTi21();
-        ROS_INFO_STREAM("Ti = " << Ti_pos);
         switch (alg_state) {
             case 1:
                 ROS_INFO_STREAM("Main case 1 moving towards Ti and testing");
@@ -49,67 +47,73 @@ void VisBug21::main_logic() {
     }
 }
 
-void VisBug21::computeTi21() {
-    switch (procedure_state) {
-        // The last stage when target is visible
-        case 1:
-            ROS_INFO_STREAM("Procedure case 1");
-            // Checking the target visibility
-            if (goal_is_visible())
-                Ti_pos = goal_point;
-            // Checking if Ti is on an obstacle boundary
-            else if (point_is_on_boundary(Ti_pos))
-                change_state_procedure(3);
-            // In all other cases going to step 2
-            else
-                change_state_procedure(2);
-            break;
-        // Candidates for Ti along the M-line are processed && hit points are defined
-        case 2:
-            ROS_INFO_STREAM("Procedure case 2");
-            Q_pos = search_endpoint_segment_Mline();
-            Ti_pos = Q_pos;
-            ROS_INFO_STREAM("Ti_pos = Q_pos");
-            ROS_INFO_STREAM("Ti = " << Ti_pos);
-            if (point_is_on_boundary(Q_pos)) {
-                prev_H_pos = H_pos;
-                H_pos = Q_pos;
-                X_pos = Q_pos;
-                change_state_procedure(3);
-            } else
-                change_state_procedure(4);
-            break;
-        // Candidates for Ti along obstacle boundaries are processed && leave points are defined
-        case 3:
-            ROS_INFO_STREAM("Procedure case 3");
-            Q_pos = search_endpoint_segment_boundary();
-            if (segment_crosses_Mline(Ti_pos, Q_pos)) {
-                P_pos = search_intersection_point(start_point, goal_point, Ti_pos, Q_pos);
-                if (calc_dist_points(P_pos, goal_point) < calc_dist_points(H_pos, goal_point)) {
-                    X_pos = P_pos;
-                    if (segment_not_crosses_obstacle(P_pos, goal_point)) {
-                        L_pos = P_pos;
-                        Ti_pos = P_pos;
-                        change_state_procedure(2);
-                    }
-                }
-            } else {
-                Ti_pos = Q_pos;
-                change_state_procedure(4);
+char VisBug21::procedure_step_1() {
+    ROS_INFO_STREAM("Compute Step 1: Testing visibility");
+    // Checking the target visibility
+    if (goal_is_visible()) {
+        Ti_pos = goal_point;
+        return 0;
+    }
+    // Checking if Ti is on an obstacle boundary
+    if (point_is_on_boundary(Ti_pos))
+        return 3;
+    // In all other cases going to step 2
+    return 2;
+}
+
+char VisBug21::procedure_step_2() {
+    ROS_INFO_STREAM("Compute Step 2: Processing candidates for Ti along the M-line, defining hit points");
+    Q_pos = search_endpoint_segment_Mline();
+    Ti_pos = Q_pos;
+    ROS_INFO_STREAM("Ti = Q_pos = " << Ti_pos);
+    if (point_is_on_boundary(Q_pos)) {
+        prev_H_pos = H_pos;
+        H_pos = Q_pos;
+        X_pos = Q_pos;
+        return 3;
+    }
+    return 4;
+}
+
+char VisBug21::procedure_step_3() {
+    ROS_INFO_STREAM("Compute Step 3: Processing candidates for Ti along the obstacle boundaries, defining leave points");
+    Q_pos = search_endpoint_segment_boundary();
+    check_reachability();
+    if (segment_crosses_Mline(Ti_pos, Q_pos)) {
+        P_pos = search_intersection_point(start_point, goal_point, Ti_pos, Q_pos);
+        if (calc_dist_points(P_pos, goal_point) < calc_dist_points(H_pos, goal_point)) {
+            X_pos = P_pos;
+            if (segment_not_crosses_obstacle(P_pos, goal_point)) {
+                L_pos = P_pos;
+                Ti_pos = P_pos;
+                return 2;
             }
-            check_reachability();
-            break;
-        // Candidates for Ti - points of M-line noncontiguous to previous sets of points - are processed
-        case 4:
-            ROS_INFO_STREAM("Procedure case 4");
-            Q_pos = point_is_on_Mline(Ti_pos) ? Ti_pos : X_pos;
-            S_apostrophe_point = search_endpoint_segment_Mline();
-            if (calc_dist_points(S_apostrophe_point, goal_point) < calc_dist_points(Q_pos, goal_point) && is_in_main_semiplane()) {
-                Ti_pos = S_apostrophe_point;
-                change_state_procedure(2);
-            } else
-                change_state_procedure(1);
-            break;
+        }
+    } else {
+        Ti_pos = Q_pos;
+        return 4;
+    }
+}
+
+char VisBug21::procedure_step_4() {
+    ROS_INFO_STREAM("Compute Step 4: A special case - testing noncontiguous points of M-line as candidates for Ti");
+    Q_pos = point_is_on_Mline(Ti_pos) ? Ti_pos : X_pos;
+    S_apostrophe_point = search_endpoint_segment_Mline();
+    if (calc_dist_points(S_apostrophe_point, goal_point) < calc_dist_points(Q_pos, goal_point) && is_in_main_semiplane()) {
+        Ti_pos = S_apostrophe_point;
+        return 2;
+    }
+    return 0;
+}
+
+void VisBug21::computeTi21() {
+    char state = procedure_step_1();
+    while(state) {
+        if (state == 2)
+            state = procedure_step_2();
+        else if (state == 3)
+            state = procedure_step_3();
+        else state = procedure_step_4();
     }
 }
 
@@ -121,7 +125,7 @@ bool VisBug21::point_is_on_boundary(geometry_msgs::Point point) {
         degree += 360;
     angle_for_decision = degree;
     double math_dist = calc_dist_points(cur_pos, point);
-    if (regions["to_unknown"] - math_dist < DELTA_OBSTACLE_DECISION)
+    if (fabs(regions["to_unknown"] - math_dist) < DELTA_OBSTACLE_DECISION && !cur_pos_is_Ti())
         return true;
     return false;
 }
@@ -250,6 +254,7 @@ geometry_msgs::Point VisBug21::math_search_endpoint_Mline() {
 
 geometry_msgs::Point VisBug21::search_endpoint_segment_Mline() {
     potential_Mline_point = math_search_endpoint_Mline();
+    ROS_INFO_STREAM("Hypothetical Mline_point" << potential_Mline_point);
     while(calc_dist_points(cur_pos, potential_Mline_point) > regions["to_Mline"])
         move_along_Mline();
     return potential_Mline_point;
@@ -306,11 +311,6 @@ bool VisBug21::cur_pos_is_Ti() {
         return true;
     }
     return false;
-}
-
-void VisBug21::change_state_alg(int input_state) {
-    alg_state = input_state;
-    ROS_INFO_STREAM("Algorithm state changed: " << MAIN_STATE_NAMES[alg_state - 1]);
 }
 
 void VisBug21::change_state_procedure(int input_state) {

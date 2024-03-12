@@ -28,10 +28,13 @@ class VisBug21 final : public BugAlg {
 public:
     VisBug21();
     virtual void main_logic() override;
-    void change_state_alg(int input_state);
     void change_state_procedure(int input_state);
     bool cur_pos_is_Ti();
     void computeTi21();
+    char procedure_step_1();
+    char procedure_step_2();
+    char procedure_step_3();
+    char procedure_step_4();
     bool goal_is_visible();
     bool is_in_main_semiplane();
     void check_reachability();
@@ -59,10 +62,4 @@ private:
     const std::array<std::string, 2> MAIN_STATE_NAMES = {
             "Main Step 1: Moving towards Ti",
             "Main Step 2: Moving along obstacle boundary"};
-    const std::array<std::string, 4> PROCEDURE_STATE_NAMES = {
-        "Compute Step 1: Testing visibility",
-        "Compute Step 2: Processing candidates for Ti along the M-line, defining hit points",
-        "Compute Step 3: Processing candidates for Ti along the obstacle boundaries, defining leave points",
-        "Compute Step 4: A special case - testing noncontiguous points of M-line as candidates for Ti"
-    };
 };
