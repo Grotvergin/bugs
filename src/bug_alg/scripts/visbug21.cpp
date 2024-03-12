@@ -15,6 +15,7 @@ void VisBug21::main_logic() {
     ros::Rate rate(RATE_FREQUENCY);
     // Initially the robot goes to the goal (state 1 of the algorithm)
     change_state_alg(1);
+    change_state_procedure(1);
     while (nh.ok()) {
         // Recording the change of yaw/position
         monitor_indicators();
@@ -22,8 +23,10 @@ void VisBug21::main_logic() {
         check_if_goal_is_reached();
         // Computing procedure ComputeTi-21
         computeTi21();
+        ROS_INFO_STREAM("Ti = " << Ti_pos);
         switch (alg_state) {
             case 1:
+                ROS_INFO_STREAM("Main case 1 moving towards Ti and testing");
                 // Moving towards Ti 
                 go_to_point(Ti_pos);
                 // Checking cur_pos = Ti
@@ -31,6 +34,7 @@ void VisBug21::main_logic() {
                     change_state_alg(2);
                 break;
             case 2:
+                ROS_INFO_STREAM("Main case 2 moving along the boundary and testing");
                 // Moving along obstacle boundary
                 wall_follower();
                 // Checking cur_pos != Ti
@@ -49,6 +53,7 @@ void VisBug21::computeTi21() {
     switch (procedure_state) {
         // The last stage when target is visible
         case 1:
+            ROS_INFO_STREAM("Procedure case 1");
             // Checking the target visibility
             if (goal_is_visible())
                 Ti_pos = goal_point;
@@ -61,8 +66,11 @@ void VisBug21::computeTi21() {
             break;
         // Candidates for Ti along the M-line are processed && hit points are defined
         case 2:
+            ROS_INFO_STREAM("Procedure case 2");
             Q_pos = search_endpoint_segment_Mline();
             Ti_pos = Q_pos;
+            ROS_INFO_STREAM("Ti_pos = Q_pos");
+            ROS_INFO_STREAM("Ti = " << Ti_pos);
             if (point_is_on_boundary(Q_pos)) {
                 prev_H_pos = H_pos;
                 H_pos = Q_pos;
@@ -73,6 +81,7 @@ void VisBug21::computeTi21() {
             break;
         // Candidates for Ti along obstacle boundaries are processed && leave points are defined
         case 3:
+            ROS_INFO_STREAM("Procedure case 3");
             Q_pos = search_endpoint_segment_boundary();
             if (segment_crosses_Mline(Ti_pos, Q_pos)) {
                 P_pos = search_intersection_point(start_point, goal_point, Ti_pos, Q_pos);
@@ -92,6 +101,7 @@ void VisBug21::computeTi21() {
             break;
         // Candidates for Ti - points of M-line noncontiguous to previous sets of points - are processed
         case 4:
+            ROS_INFO_STREAM("Procedure case 4");
             Q_pos = point_is_on_Mline(Ti_pos) ? Ti_pos : X_pos;
             S_apostrophe_point = search_endpoint_segment_Mline();
             if (calc_dist_points(S_apostrophe_point, goal_point) < calc_dist_points(Q_pos, goal_point) && is_in_main_semiplane()) {
@@ -279,8 +289,11 @@ void VisBug21::check_reachability() {
 }
 
 bool VisBug21::goal_is_visible() {
-    // Checking if free space it the direction of goal is less than vision radius
-    if (regions["to_goal"] < VISION_RADIUS) {
+    // Checking two conditions:
+    // 1. Geometrical distance between goal and current is less than vision radius
+    // 2. Free distance to goal is more than geometrical
+    double geom_dist = calc_dist_points(cur_pos, goal_point);
+    if (geom_dist < VISION_RADIUS && regions["to_goal"] >= geom_dist) {
         ROS_INFO_STREAM("Goal is visible");
         return true;
     }
@@ -288,17 +301,19 @@ bool VisBug21::goal_is_visible() {
 }
 
 bool VisBug21::cur_pos_is_Ti() {
-    if (calc_dist_points(Ti_pos, cur_pos) < ACCURACY_CUR_POS_IS_Ti)
+    if (calc_dist_points(Ti_pos, cur_pos) < ACCURACY_CUR_POS_IS_Ti) {
+        ROS_INFO_STREAM("Current position is Ti");
         return true;
+    }
     return false;
 }
 
 void VisBug21::change_state_alg(int input_state) {
     alg_state = input_state;
-    ROS_INFO_STREAM("Algorithm state changed: " << MAIN_STATE_NAMES[alg_state]);
+    ROS_INFO_STREAM("Algorithm state changed: " << MAIN_STATE_NAMES[alg_state - 1]);
 }
 
 void VisBug21::change_state_procedure(int input_state) {
     procedure_state = input_state;
-    ROS_INFO_STREAM("Algorithm state changed: " << PROCEDURE_STATE_NAMES[procedure_state]);
+    ROS_INFO_STREAM("Algorithm state changed: " << PROCEDURE_STATE_NAMES[procedure_state - 1]);
 }

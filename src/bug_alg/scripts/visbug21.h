@@ -5,7 +5,7 @@
 // Accuracy for determening the achievement of target
 #define ACCURACY_TARGET 0.2
 // Accuracy for reaching Ti
-#define ACCURACY_CUR_POS_IS_Ti 0.1
+#define ACCURACY_CUR_POS_IS_Ti 0.01
 // Minimum distance to the obstacle for determening leave point
 #define DISTANCE_TO_OBSTACLE 0.25
 // Minimum distance in front of the robot for determening leave point
@@ -13,7 +13,7 @@
 // Buffer just in case, to avoid boundary case in testng target reachability
 #define BUFFER_CHECK_REACHABILITY 0.5
 // Radius of vision for the robot
-#define VISION_RADIUS 1.0f
+#define VISION_RADIUS 0.2f
 // Accuracy for determening whether the point lies on Mline
 #define ACCURACY_MLINE 0.2
 // Step for moving along Mline to search appropriate Mline point
@@ -60,7 +60,7 @@ private:
             "Main Step 1: Moving towards Ti",
             "Main Step 2: Moving along obstacle boundary"};
     const std::array<std::string, 4> PROCEDURE_STATE_NAMES = {
-        "Compute Step 1: Target is visible",
+        "Compute Step 1: Testing visibility",
         "Compute Step 2: Processing candidates for Ti along the M-line, defining hit points",
         "Compute Step 3: Processing candidates for Ti along the obstacle boundaries, defining leave points",
         "Compute Step 4: A special case - testing noncontiguous points of M-line as candidates for Ti"
