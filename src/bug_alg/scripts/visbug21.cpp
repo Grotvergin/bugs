@@ -76,7 +76,7 @@ char VisBug21::procedure_step_2() {
 char VisBug21::procedure_step_3() {
     ROS_INFO_STREAM("Compute Step 3");
     Q_pos = search_endpoint_segment_boundary();
-    check_reachability();
+    // check_reachability();
     if (segment_crosses_Mline(Ti_pos, Q_pos)) {
         P_pos = search_intersection_point(start_point, goal_point, Ti_pos, Q_pos);
         if (calc_dist_points(P_pos, goal_point) < calc_dist_points(H_pos, goal_point)) {
@@ -130,18 +130,25 @@ bool VisBug21::point_is_on_boundary(geometry_msgs::Point point) {
     return false;
 }
 
-VisBug21::VisBug21() {
-    sub_spec_distances_laser = nh.subscribe("/scan", 1, &VisBug21::clbk_spec_distances_laser, this);
-    ROS_INFO_STREAM("Subscribed on special distances");
-}
+// VisBug21::VisBug21() {
+//     sub_spec_distances_laser = nh.subscribe("/scan", 1, &VisBug21::clbk_spec_distances_laser, this);    
+//     ROS_INFO_STREAM("Subscribed on special distances");
+// }
 
-void VisBug21::clbk_spec_distances_laser(const sensor_msgs::LaserScan::ConstPtr &msg) {
+void VisBug21::clbk_laser(const sensor_msgs::LaserScan::ConstPtr &msg) {
+    regions["left"] = std::min(*std::min_element(msg->ranges.begin() + 57, msg->ranges.begin() + 102), BASE_DIST);
+    regions["fleft"] = std::min(*std::min_element(msg->ranges.begin() + 26, msg->ranges.begin() + 56), BASE_DIST);
+    regions["front"] = std::min(std::min(*std::min_element(msg->ranges.begin(), msg->ranges.begin() + 25), *std::min_element(msg->ranges.begin() + 334, msg->ranges.begin() + 359)), BASE_DIST);
+    regions["fright"] = std::min(*std::min_element(msg->ranges.begin() + 303, msg->ranges.begin() + 333), BASE_DIST);
+    regions["right"] = std::min(*std::min_element(msg->ranges.begin() + 257, msg->ranges.begin() + 302), BASE_DIST);
+    regions["right45"] = std::min(msg->ranges[315], BASE_DIST);
+    regions["left45"] = std::min(msg->ranges[45], BASE_DIST);
+    ROS_INFO_STREAM("Special distances callback called");
     yaw_endpoint_Mline = atan2(potential_Mline_point.y - cur_pos.y, potential_Mline_point.x - cur_pos.x);
     degree_endpoint_Mline = normalize_angle(yaw_endpoint_Mline - cur_yaw) * 180 / M_PI;
     if (degree_endpoint_Mline < 0) degree_endpoint_Mline += 360;
     ROS_INFO_STREAM("Degree endpoint Mline: " << degree_endpoint_Mline);
     regions["to_Mline"] = std::min(msg->ranges[degree_endpoint_Mline], VISION_RADIUS);
-    ROS_INFO_STREAM("Special distances callback called");
     yaw_goal = atan2(goal_point.y - cur_pos.y, goal_point.x - cur_pos.x);
     degree_goal = normalize_angle(yaw_goal - cur_yaw) * 180 / M_PI;
     if (degree_goal < 0) degree_goal += 360;

@@ -104,7 +104,7 @@ protected:
 
     // Methods for processing responses from Laser&Odometry
     void clbk_odom(const nav_msgs::Odometry::ConstPtr &msg);
-    void clbk_laser(const sensor_msgs::LaserScan::ConstPtr &msg);
+    virtual void clbk_laser(const sensor_msgs::LaserScan::ConstPtr &msg);
 
     // Method returns distance between two points
     double calc_dist_points(geometry_msgs::Point A, geometry_msgs::Point B);

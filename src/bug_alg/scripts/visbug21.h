@@ -38,7 +38,7 @@ public:
     bool goal_is_visible();
     bool is_in_main_semiplane();
     void check_reachability();
-    void clbk_spec_distances_laser(const sensor_msgs::LaserScan::ConstPtr &msg);
+    virtual void clbk_laser(const sensor_msgs::LaserScan::ConstPtr &msg);
     bool point_is_on_Mline(geometry_msgs::Point point);
     geometry_msgs::Point search_endpoint_segment_Mline();
     geometry_msgs::Point math_search_endpoint_Mline();
