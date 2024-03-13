@@ -130,10 +130,10 @@ bool VisBug21::point_is_on_boundary(geometry_msgs::Point point) {
     return false;
 }
 
-// VisBug21::VisBug21() {
-//     sub_spec_distances_laser = nh.subscribe("/scan", 1, &VisBug21::clbk_spec_distances_laser, this);
-//     ROS_INFO_STREAM("Subscribed on special distances");
-// }
+VisBug21::VisBug21() {
+    sub_spec_distances_laser = nh.subscribe("/scan", 1, &VisBug21::clbk_spec_distances_laser, this);
+    ROS_INFO_STREAM("Subscribed on special distances");
+}
 
 void VisBug21::clbk_spec_distances_laser(const sensor_msgs::LaserScan::ConstPtr &msg) {
     yaw_endpoint_Mline = atan2(potential_Mline_point.y - cur_pos.y, potential_Mline_point.x - cur_pos.x);
@@ -267,11 +267,13 @@ geometry_msgs::Point VisBug21::search_endpoint_segment_Mline() {
     potential_Mline_point = math_search_endpoint_Mline();
     ROS_INFO_STREAM("Hypothetical Mline_point:\n" << potential_Mline_point);
     ROS_INFO_STREAM("Vision radius: " << VISION_RADIUS);
+    ROS_INFO_STREAM("Distance regions[Mline]: " << regions["to_Mline"]);
+    ROS_INFO_STREAM("Distance regions[front]: " << regions["front"]);
     ROS_INFO_STREAM("Distance between cur_pos and potential Mline point: " << calc_dist_points(cur_pos, potential_Mline_point));
-    while(calc_dist_points(cur_pos, potential_Mline_point) > regions["to_Mline"]) {
-        ROS_INFO_STREAM("Distance regions[front]: " << regions["front"]);
-        move_along_Mline();
-    }
+    // while(calc_dist_points(cur_pos, potential_Mline_point) > regions["to_Mline"]) {
+    //     // ROS_INFO_STREAM("Distance regions[front]: " << regions["front"]);
+    //     move_along_Mline();
+    // }
     return potential_Mline_point;
 }
 

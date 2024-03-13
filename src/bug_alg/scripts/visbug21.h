@@ -26,7 +26,7 @@
 // The main class for the algorithm
 class VisBug21 final : public BugAlg {
 public:
-    // VisBug21();
+    VisBug21() = default;
     virtual void main_logic() override;
     void change_state(int input_state);
     void computeTi21();
