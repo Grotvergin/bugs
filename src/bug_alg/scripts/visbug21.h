@@ -13,7 +13,7 @@
 // Buffer just in case, to avoid boundary case in testng target reachability
 #define BUFFER_CHECK_REACHABILITY 0.5
 // Radius of vision for the robot
-#define VISION_RADIUS 0.2f
+#define VISION_RADIUS 0.5f
 // Accuracy for determening whether the point lies on Mline
 #define ACCURACY_MLINE 0.2
 // Step for moving along Mline to search appropriate Mline point
@@ -26,15 +26,15 @@
 // The main class for the algorithm
 class VisBug21 final : public BugAlg {
 public:
-    VisBug21();
+    // VisBug21();
     virtual void main_logic() override;
-    void change_state_procedure(int input_state);
-    bool cur_pos_is_Ti();
+    void change_state(int input_state);
     void computeTi21();
     char procedure_step_1();
     char procedure_step_2();
     char procedure_step_3();
     char procedure_step_4();
+    bool cur_pos_is_Ti();
     bool goal_is_visible();
     bool is_in_main_semiplane();
     void check_reachability();
@@ -56,10 +56,4 @@ private:
     ros::Subscriber sub_spec_distances_laser;
     // Variable for intermediate temporary target points
     geometry_msgs::Point Ti_pos, Q_pos, H_pos, X_pos, P_pos, L_pos, S_apostrophe_point, prev_H_pos, potential_Mline_point;
-    // Variable for storing the state of the procedure
-    int procedure_state;
-    // Names of states for some logging messages
-    const std::array<std::string, 2> MAIN_STATE_NAMES = {
-            "Main Step 1: Moving towards Ti",
-            "Main Step 2: Moving along obstacle boundary"};
 };

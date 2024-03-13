@@ -91,7 +91,7 @@ protected:
     double overall_distance = 0, prev_yaw = 0, sum_yaw = 0, prev_path_delta = 0;
 
     // Variable for storing the main algorithm alg_state
-    int alg_state = 0;
+    int state = 0;
 
     // Variables for tracking key path points
     geometry_msgs::Point cur_pos, last_path_point, start_point, goal_point;

@@ -88,6 +88,7 @@ void BugAlg::kill_system() {
 }
 
 void BugAlg::go_to_point(geometry_msgs::Point point) {
+    ROS_INFO_STREAM("Going to point");
     // Creating an empty twist message
     geometry_msgs::Twist msg;
     // Calculating the desired angle to the target
@@ -174,6 +175,7 @@ double BugAlg::normalize_angle(double angle) {
 void BugAlg::clbk_laser(const sensor_msgs::LaserScan::ConstPtr &msg) {
     // Block of so-called regions, key areas, which the robot uses for orientation
     // In each direction we choose the smallest distance overall
+    ROS_INFO_STREAM("Usual callback called");
     regions["left"] = std::min(*std::min_element(msg->ranges.begin() + 57, msg->ranges.begin() + 102), BASE_DIST);
     regions["fleft"] = std::min(*std::min_element(msg->ranges.begin() + 26, msg->ranges.begin() + 56), BASE_DIST);
     regions["front"] = std::min(std::min(*std::min_element(msg->ranges.begin(), msg->ranges.begin() + 25), *std::min_element(msg->ranges.begin() + 334, msg->ranges.begin() + 359)), BASE_DIST);
