@@ -1,7 +1,7 @@
 // Direction for following the wall
 #define DIR_IS_LEFT true
 // Frequency of the main loop
-#define RATE_FREQUENCY 15
+#define RATE_FREQUENCY 1
 // Accuracy for determening the achievement of target
 #define ACCURACY_TARGET 0.2
 // Accuracy for reaching Ti
@@ -11,7 +11,7 @@
 // Minimum distance in front of the robot for determening leave point
 #define FREE_SPACE_LEAVE 0.1
 // Buffer just in case, to avoid boundary case in testng target reachability
-#define BUFFER_CHECK_REACHABILITY 0.5
+#define BUFFER_CHECK_REACHABILITY 0.05
 // Radius of vision for the robot
 #define VISION_RADIUS 0.5f
 // Accuracy for determening whether the point lies on Mline
@@ -19,7 +19,7 @@
 // Step for moving along Mline to search appropriate Mline point
 #define STEP_MLINE 0.1
 #define ACCURACY_LINES 0.01f
-#define DELTA_OBSTACLE_DECISION 0.1
+#define DELTA_OBSTACLE_DECISION 0.05
 // Header, containing base class and common methods for any Bug algorithm
 #include "bug.h"
 
@@ -53,7 +53,6 @@ public:
 
 private:
     double yaw_goal, degree_goal, yaw_endpoint_Mline, degree_endpoint_Mline, angle_to_boundary, angle_for_decision;
-    ros::Subscriber sub_spec_distances_laser;
     // Variable for intermediate temporary target points
     geometry_msgs::Point Ti_pos, Q_pos, H_pos, X_pos, P_pos, L_pos, S_apostrophe_point, prev_H_pos, potential_Mline_point;
 };
