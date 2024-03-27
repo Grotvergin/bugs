@@ -22,6 +22,7 @@ void VisBug21::main_logic() {
         check_if_goal_is_reached();
         // Computing procedure ComputeTi-21
         computeTi21();
+        ROS_INFO_STREAM("Starting main body");
         switch (state) {
             case 1:
                 // Moving towards Ti 
@@ -198,15 +199,16 @@ geometry_msgs::Point VisBug21::math_search_endpoint_Mline() {
 geometry_msgs::Point VisBug21::search_endpoint_segment_Mline() {
     potential_Mline_point = math_search_endpoint_Mline();
     ROS_INFO_STREAM("Hypothetical Mline_point:\n" << potential_Mline_point);
-    while(calc_dist_points(cur_pos, potential_Mline_point) > regions["to_Mline"] && regions["to_Mline"] > 0) {
-        ROS_INFO_STREAM("Distance regions[Mline]: " << regions["to_Mline"]);
-        ROS_INFO_STREAM("Distance between cur_pos and potential Mline point: " << calc_dist_points(cur_pos, potential_Mline_point));
-        potential_Mline_point = move_along_Mline(potential_Mline_point);
-    }
+    // REMOVED BOUNDARY CHECK FOR SIMPLICITY
+    // while(calc_dist_points(cur_pos, potential_Mline_point) > regions["to_Mline"] && regions["to_Mline"] > 0) {
+    //     ROS_INFO_STREAM("Distance regions[Mline]: " << regions["to_Mline"]);
+    //     ROS_INFO_STREAM("Distance between cur_pos and potential Mline point: " << calc_dist_points(cur_pos, potential_Mline_point));
+    //     potential_Mline_point = move_along_Mline(potential_Mline_point);
+    // }
     return potential_Mline_point;
 }
 
-// FIX HERE STOPPED HERE
+// FUNCTION DOES NOT WORK AT ALL
 geometry_msgs::Point VisBug21::move_along_Mline(geometry_msgs::Point point) {
     double l = sqrt(pow(goal_point.x - start_point.x, 2) + pow(goal_point.y - start_point.y, 2));
     double t = STEP_MLINE / l;
