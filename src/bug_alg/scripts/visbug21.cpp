@@ -3,34 +3,57 @@
 int main(int argc, char **argv) {
     // Initializing the VisBug21 algorithm with command line args
     ros::init(argc, argv, "visbug21");
-    // Creating an instance of Class1
+    // Creating an instance of VisBug21
     VisBug21 visbug21;
     // Calling the main_logic() method to start the algorithm
     visbug21.main_logic();
     return EXIT_SUCCESS;
 }
 
-int radian2degree(double radian) {
+void VisBug21::show_points() {
+    ROS_INFO_STREAM("Ti: x = " << Ti.x << " y = " << Ti.y);
+    ROS_INFO_STREAM("Q: x = " << Q.x << " y = " << Q.y);
+    ROS_INFO_STREAM("H: x = " << H.x << " y = " << H.y);
+    ROS_INFO_STREAM("X: x = " << X.x << " y = " << X.y);
+    ROS_INFO_STREAM("P: x = " << P.x << " y = " << P.y);
+    ROS_INFO_STREAM("L: x = " << L.x << " y = " << L.y);
+    // ROS_INFO_STREAM("S: x = " << S.x << " y = " << S.y);
+    // ROS_INFO_STREAM("prev_H: x = " << prev_H.x << " y = " << prev_H.y);
+}
+
+void VisBug21::refresh() {
+    // Variable for sleeping between iterations of ros::spinOnce()
+    ros::Rate rate(RATE_FREQUENCY);
+    // Updating the main loop
+    ros::spinOnce();
+    // Sleeping for 1/RATE_FREQUENCY seconds
+    rate.sleep();
+}
+
+int VisBug21::radian2degree(double radian) {
     return round(radian * 180 / M_PI);
 }
 
-int adapt_degree(double interested_radian) {
+double VisBug21::degree2radian(int degree) {
+    return (degree * M_PI / 180.0);
+}
+
+int VisBug21::adapt_degree(double interested_radian) {
     int angle = radian2degree(interested_radian) - radian2degree(cur_yaw);
     if (angle < 0) angle += 360;
     return angle;
 }
 
-double get_distance_by_course(double interested_radian) {
-    angle = adapt_degree(interested_radian);
+double VisBug21::get_distance_by_course(double interested_radian) {
+    int angle = adapt_degree(interested_radian);
     return regions[std::to_string(angle)];
 }
 
 void VisBug21::main_logic() {
-    // Variable for sleeping between iterations of ros::spinOnce()
-    ros::Rate rate(RATE_FREQUENCY);
     // Initially the robot goes to the goal (state 1 of the algorithm)
     change_state(1);
     while (nh.ok()) {
+        show_points();
         // Recording the change of yaw/position
         monitor_indicators();
         // Performing check of reaching the target
@@ -41,7 +64,7 @@ void VisBug21::main_logic() {
         switch (state) {
             case 1:
                 // Moving towards Ti 
-                go_to_point(Ti_pos);
+                go_to_point(Ti);
                 // Checking cur_pos = Ti
                 if (cur_pos_is_Ti())
                     change_state(2);
@@ -54,10 +77,7 @@ void VisBug21::main_logic() {
                     change_state(1);
                 break;
         }
-        // Updating the main loop
-        ros::spinOnce();
-        // Sleeping for 1/RATE_FREQUENCY seconds
-        rate.sleep();
+        refresh();
     }
 }
 
@@ -65,11 +85,11 @@ char VisBug21::procedure_step_1() {
     ROS_INFO_STREAM("Compute Step 1");
     // Checking the target visibility
     if (goal_is_visible()) {
-        Ti_pos = goal_point;
+        Ti = goal_point;
         return 0;
     }
     // Checking if Ti is on an obstacle boundary
-    if (point_is_on_boundary(Ti_pos))
+    if (point_is_on_boundary(Ti))
         return 3;
     // In all other cases going to step 2
     return 2;
@@ -77,12 +97,13 @@ char VisBug21::procedure_step_1() {
 
 char VisBug21::procedure_step_2() {
     ROS_INFO_STREAM("Compute Step 2");
-    Q_pos = search_endpoint_segment_Mline();
-    Ti_pos = Q_pos;
-    if (point_is_on_boundary(Q_pos)) {
-        prev_H_pos = H_pos;
-        H_pos = Q_pos;
-        X_pos = Q_pos;
+    Q = search_endpoint_segment_Mline();
+    Ti = Q;
+    if (point_is_on_boundary(Q)) {
+        ROS_INFO_STREAM("Hit point defined!");
+        prev_H = H;
+        H = Q;
+        X = Q;
         return 3;
     }
     return 4;
@@ -90,32 +111,31 @@ char VisBug21::procedure_step_2() {
 
 char VisBug21::procedure_step_3() {
     ROS_INFO_STREAM("Compute Step 3");
-    Q_pos = search_endpoint_segment_boundary();
-    check_reachability();
-    if (segment_crosses_Mline(Ti_pos, Q_pos)) {
-        P_pos = search_intersection_point(start_point, goal_point, Ti_pos, Q_pos);
-        if (calc_dist_points(P_pos, goal_point) < calc_dist_points(H_pos, goal_point)) {
-            X_pos = P_pos;
-            if (!segment_crosses_obstacle(P_pos, goal_point)) {
-                L_pos = P_pos;
-                Ti_pos = P_pos;
+    Q = search_endpoint_segment_boundary();
+    if (segment_crosses_Mline(Ti, Q)) {
+        P = search_intersection_point(start_point, goal_point, Ti, Q);
+        if (calc_dist_points(P, goal_point) < calc_dist_points(H, goal_point)) {
+            X = P;
+            if (!segment_crosses_obstacle()) {
+                L = P;
+                Ti = P;
                 return 2;
             }
         }
-    } else {
-        Ti_pos = Q_pos;
-        return 4;
     }
+    check_reachability();
+    Ti = Q;
+    return 4;
 }
 
 char VisBug21::procedure_step_4() {
     ROS_INFO_STREAM("Compute Step 4");
-    Q_pos = point_is_on_Mline(Ti_pos) ? Ti_pos : X_pos;
-    S_apostrophe_point = search_endpoint_segment_Mline();
-    if (calc_dist_points(S_apostrophe_point, goal_point) < calc_dist_points(Q_pos, goal_point) && is_in_main_semiplane()) {
-        Ti_pos = S_apostrophe_point;
-        return 2;
-    }
+    Q = point_is_on_Mline(Ti) ? Ti : X;
+    // S_apostrophe_point = search_endpoint_segment_Mline();
+    // if (calc_dist_points(S_apostrophe_point, goal_point) < calc_dist_points(Q, goal_point) && is_in_main_semiplane()) {
+    //     Ti = S_apostrophe_point;
+    //     return 2;
+    // }
     return 0;
 }
 
@@ -132,11 +152,18 @@ void VisBug21::computeTi21() {
     ROS_INFO_STREAM("Exited Compute");
 }
 
-bool VisBug21::point_is_on_boundary(geometry_msgs::Point point) {
+bool VisBug21::point_is_on_boundary(Point point) {
+    ROS_INFO_STREAM("Checking point is on boundary...");
     double dir_interest = atan2(point.y - cur_pos.y, point.x - cur_pos.x);
+    ROS_INFO_STREAM("Degree interest for boundary: " << radian2degree(dir_interest));
     double math_dist = calc_dist_points(cur_pos, point);
-    if (fabs(get_distance_by_course(dir_interest) - math_dist) < DELTA_OBSTACLE_DECISION)
+    ROS_INFO_STREAM("Math dist = " << math_dist);
+    ROS_INFO_STREAM("Distance by course = " << get_distance_by_course(dir_interest));
+    if (fabs(get_distance_by_course(dir_interest) - math_dist) < DELTA_OBSTACLE_DECISION) {
+        ROS_INFO_STREAM("On boundary!");
         return true;
+    }
+    ROS_INFO_STREAM("NOT boundary");
     return false;
 }
 
@@ -151,12 +178,12 @@ void VisBug21::clbk_laser(const sensor_msgs::LaserScan::ConstPtr &msg) {
     regions["left45"] = std::min(msg->ranges[45], BASE_DIST);
     // 360 regions by one degree
     for (int i = 0; i < 360; ++i)
-        regions[std::to_string(i)] = std::min(msg->ranges.begin() + i, BASE_DIST);
+        regions[std::to_string(i)] = std::min(msg->ranges[i], BASE_DIST);
 }
 
-// Add check for segment, not for the hole line?
-geometry_msgs::Point VisBug21::math_search_endpoint_Mline() {
-    geometry_msgs::Point point;
+// Add check for segment, not for the whole line?
+Point VisBug21::math_search_endpoint_Mline() {
+    Point point;
     double dx = start_point.x - goal_point.x;
     double dy = start_point.y - goal_point.y;
 
@@ -172,19 +199,17 @@ geometry_msgs::Point VisBug21::math_search_endpoint_Mline() {
     }
 
     if (fabs(det) < 0.0000001) {
-        ROS_INFO_STREAM("One mathematical intersection with Mline found");
         double t = -B / (2 * A);
         point.x = goal_point.x + t * dx;
         point.y = goal_point.y + t * dy;
         return point;
     }
 
-    ROS_INFO_STREAM("Two mathematical intersections with Mline found");
     double t = (double)((-B + sqrt(det)) / (2 * A));
     point.x = goal_point.x + t * dx;
     point.y = goal_point.y + t * dy;
     t = (double)((-B - sqrt(det)) / (2 * A));
-    geometry_msgs::Point another;
+    Point another;
     another.x = goal_point.x + t * dx;
     another.y = goal_point.y + t * dy;
     if (calc_dist_points(point, goal_point) < calc_dist_points(another, goal_point))
@@ -193,21 +218,26 @@ geometry_msgs::Point VisBug21::math_search_endpoint_Mline() {
 
 }
 
-geometry_msgs::Point VisBug21::search_endpoint_segment_Mline() {
-    geometry_msgs::Point potential_Mline_point;
-    double dir_interest;
-    do {
+Point VisBug21::search_endpoint_segment_Mline() {
+    ROS_INFO_STREAM("Entered cyclic");
+    Point potential_Mline_point = math_search_endpoint_Mline();
+    double dir_interest = atan2(potential_Mline_point.y - cur_pos.y, potential_Mline_point.x - cur_pos.x);
+    while(calc_dist_points(cur_pos, potential_Mline_point) > get_distance_by_course(dir_interest)) {
         potential_Mline_point = math_search_endpoint_Mline();
-        ROS_INFO_STREAM("Hypothetical Mline_point:\n" << potential_Mline_point);
         dir_interest = atan2(potential_Mline_point.y - cur_pos.y, potential_Mline_point.x - cur_pos.x);
+        potential_Mline_point = move_along_Mline(potential_Mline_point);
+        ROS_INFO_STREAM("Hypothetical Mline_point:\n" << potential_Mline_point);
+        ROS_INFO_STREAM("DIR INTEREST = " << radian2degree(dir_interest));
         ROS_INFO_STREAM("Distance to Mline: " << get_distance_by_course(dir_interest));
         ROS_INFO_STREAM("Distance between cur_pos and potential Mline point: " << calc_dist_points(cur_pos, potential_Mline_point));
-        potential_Mline_point = move_along_Mline(potential_Mline_point);
-    } while(calc_dist_points(cur_pos, potential_Mline_point) > get_distance_by_course(dir_interest));
+        show_points();
+        refresh();
+    }
+    ROS_INFO_STREAM("Exited cyclic");
     return potential_Mline_point;
 }
 
-geometry_msgs::Point VisBug21::move_along_Mline(geometry_msgs::Point point) {
+Point VisBug21::move_along_Mline(Point point) {
     double len = calc_dist_points(start_point, point);
     double step = len * SENSIVITY_MOVE_MLINE;
     double dx = (start_point.x - point.x) / len;
@@ -217,9 +247,9 @@ geometry_msgs::Point VisBug21::move_along_Mline(geometry_msgs::Point point) {
     return point;
 }
 
-geometry_msgs::Point VisBug21::search_endpoint_segment_boundary() {
-    geometry_msgs::Point potential_Q_point;
-    double dir_Ti = atan2(Ti_pos.y - cur_pos.y, Ti_pos.x - cur_pos.x);
+Point VisBug21::search_endpoint_segment_boundary() {
+    Point potential_Q_point;
+    double dir_Ti = atan2(Ti.y - cur_pos.y, Ti.x - cur_pos.x);
     int robot_degree = adapt_degree(dir_Ti);
     int base_degree = radian2degree(dir_Ti);
     int potential_angle = base_degree;
@@ -243,19 +273,20 @@ geometry_msgs::Point VisBug21::search_endpoint_segment_boundary() {
         }
         if (potential_angle < -180) potential_angle += 360;
     }
-    // NOW use potential angle (it is in base system) to calculate x and y of new Q point
+    potential_Q_point.x = cur_pos.x + cos(degree2radian(potential_angle)) * dist_Q;
+    potential_Q_point.y = cur_pos.y + sin(degree2radian(potential_angle)) * dist_Q; 
     return potential_Q_point;
 }
 
 bool VisBug21::segment_crosses_obstacle() {
-    geometry_msgs::Point test = search_intersection_point(P_pos, goal_point, Ti_pos, Q_pos);
-    if (fabs(test.x - P_pos.x) < DELTA_SEGM_CR_OBST && fabs(test.y - P_pos.y) < DELTA_SEGM_CR_OBST)
+    Point test = search_intersection_point(P, goal_point, Ti, Q);
+    if (fabs(test.x - P.x) < DELTA_SEGM_CR_OBST && fabs(test.y - P.y) < DELTA_SEGM_CR_OBST)
         return false;
     return true;
 }
 
-geometry_msgs::Point VisBug21::search_intersection_point(geometry_msgs::Point A, geometry_msgs::Point B, geometry_msgs::Point C, geometry_msgs::Point D) {
-    geometry_msgs::Point result;
+Point VisBug21::search_intersection_point(Point A, Point B, Point C, Point D) {
+    Point result;
     result.x = result.y = result.z = 0;
     double denom = (D.y - C.y) * (B.x - A.x) - (D.x - C.x) * (B.y - A.y);
     if (denom == 0)
@@ -275,7 +306,7 @@ bool VisBug21::is_between(double x, double b1, double b2) {
     return (((x >= (b1 - ACCURACY_LINES)) && (x <= (b2 + ACCURACY_LINES))) || ((x >= (b2 - ACCURACY_LINES)) && (x <= (b1 + ACCURACY_LINES))));
 }
 
-bool VisBug21::segment_crosses_Mline(geometry_msgs::Point A, geometry_msgs::Point B) {
+bool VisBug21::segment_crosses_Mline(Point A, Point B) {
     double dx1 = B.x - A.x;
     double dx2 = goal_point.x - start_point.x;
     double dy1 = B.y - A.y;
@@ -296,7 +327,7 @@ bool VisBug21::segment_crosses_Mline(geometry_msgs::Point A, geometry_msgs::Poin
     return is_between(xcol, A.x, B.x) && is_between(ycol, A.y, B.y) && is_between(xcol, start_point.x, goal_point.x) && is_between(ycol, start_point.y, goal_point.y);
 }
 
-bool VisBug21::point_is_on_Mline(geometry_msgs::Point point) {
+bool VisBug21::point_is_on_Mline(Point point) {
     double A = start_point.y - goal_point.y;
     double B = goal_point.x - start_point.x;
     double C = start_point.x * goal_point.y - goal_point.x * start_point.y;
@@ -315,7 +346,7 @@ bool VisBug21::is_in_main_semiplane() {
 }
 
 void VisBug21::check_reachability() {
-    if (calc_dist_points(H_pos, prev_H_pos) < BUFFER_CHECK_REACHABILITY && H_pos.x != 0 && H_pos.y != 0 && prev_H_pos.x != 0 && prev_H_pos.y != 0) {
+    if (calc_dist_points(H, prev_H) < BUFFER_CHECK_REACHABILITY && H.x != 0 && H.y != 0 && prev_H.x != 0 && prev_H.y != 0) {
         stop_robot();
         create_report("Target can not be reached.");
         kill_system();
@@ -336,7 +367,7 @@ bool VisBug21::goal_is_visible() {
 }
 
 bool VisBug21::cur_pos_is_Ti() {
-    if (calc_dist_points(Ti_pos, cur_pos) < ACCURACY_CUR_POS_IS_Ti) {
+    if (calc_dist_points(Ti, cur_pos) < ACCURACY_CUR_POS_IS_Ti) {
         ROS_INFO_STREAM("Current position is Ti");
         return true;
     }

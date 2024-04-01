@@ -1,4 +1,5 @@
 #!/bin/bash
+clear
 cur_shell=$(basename $SHELL)
 cur_shell=$(echo $cur_shell | sed 's/-//g')
 source devel/setup.$cur_shell

@@ -1,15 +1,15 @@
 // Direction for following the wall
 #define DIR_IS_LEFT true
 // Frequency of the main loop
-#define RATE_FREQUENCY 1
+#define RATE_FREQUENCY 2
 // Accuracy for determening the achievement of target
 #define ACCURACY_TARGET 0.2
 // Accuracy for reaching Ti
 #define ACCURACY_CUR_POS_IS_Ti 0.01
 // Buffer just in case, to avoid boundary case in testng target reachability
-#define BUFFER_CHECK_REACHABILITY 0.05
+#define BUFFER_CHECK_REACHABILITY 0.03
 // Radius of vision for the robot
-#define VISION_RADIUS 0.5f
+#define VISION_RADIUS 0.8f
 // Accuracy for determening whether the point lies on Mline
 #define ACCURACY_MLINE 0.2
 // Step for moving along Mline to search appropriate Mline point
@@ -20,6 +20,7 @@
 #define RANGE_SEARCH_DEGREES 30
 // Header, containing base class and common methods for any Bug algorithm
 #include "bug.h"
+using Point = geometry_msgs::Point;
 
 // The main class for the algorithm
 class VisBug21 final : public BugAlg {
@@ -29,6 +30,8 @@ public:
     virtual void main_logic() override;
     void change_state(int input_state);
     virtual void clbk_laser(const sensor_msgs::LaserScan::ConstPtr &msg);
+    void refresh();
+    void show_points();
     // Procedure Compute Ti-21 and its steps
     void computeTi21();
     char procedure_step_1();
@@ -39,23 +42,24 @@ public:
     bool cur_pos_is_Ti();
     bool goal_is_visible();
     bool is_in_main_semiplane();
-    bool segment_crosses_Mline(geometry_msgs::Point A, geometry_msgs::Point B);
-    bool point_is_on_boundary(geometry_msgs::Point point);
-    bool point_is_on_Mline(geometry_msgs::Point point);
+    bool segment_crosses_Mline(Point A, Point B);
+    bool point_is_on_boundary(Point point);
+    bool point_is_on_Mline(Point point);
     bool is_between(double x, double b1, double b2);
     bool segment_crosses_obstacle();
     void check_reachability();
     // Returning points functions
-    geometry_msgs::Point search_endpoint_segment_Mline();
-    geometry_msgs::Point math_search_endpoint_Mline();
-    geometry_msgs::Point move_along_Mline(geometry_msgs::Point point);
-    geometry_msgs::Point search_intersection_point(geometry_msgs::Point A, geometry_msgs::Point B, geometry_msgs::Point C, geometry_msgs::Point D);
-    geometry_msgs::Point search_endpoint_segment_boundary();
+    Point search_endpoint_segment_Mline();
+    Point math_search_endpoint_Mline();
+    Point move_along_Mline(Point point);
+    Point search_intersection_point(Point A, Point B, Point C, Point D);
+    Point search_endpoint_segment_boundary();
     // Working with different coordinate systems
     int radian2degree(double radian);
-    int adapt_degree(double interested_radian)
+    double degree2radian(int degree);
+    int adapt_degree(double interested_radian);
     double get_distance_by_course(double interested_radian);
 private:
     // Variables for intermediate temporary target points
-    geometry_msgs::Point Ti_pos, Q_pos, H_pos, X_pos, P_pos, L_pos, S_apostrophe_point, prev_H_pos;
+    Point Ti, Q, H, X, P, L, S, prev_H;
 };
