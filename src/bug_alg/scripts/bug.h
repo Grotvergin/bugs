@@ -39,15 +39,15 @@
 #endif
 
 #ifndef NORMAL_SPEED_FORWARD
-#define NORMAL_SPEED_FORWARD 0.2
+#define NORMAL_SPEED_FORWARD 0.1
 #endif
 
 #ifndef SLOW_SPEED_FORWARD
-#define SLOW_SPEED_FORWARD 0.1
+#define SLOW_SPEED_FORWARD 0.05
 #endif
 
 #ifndef ROTATE_SPEED
-#define ROTATE_SPEED 0.15
+#define ROTATE_SPEED 0.05
 #endif
 
 #ifndef ACCURACY_TARGET
@@ -63,7 +63,7 @@
 #endif
 
 #ifndef BASE_DIST
-#define BASE_DIST 10.0f
+#define BASE_DIST 1.0f
 #endif
 
 class BugAlg {

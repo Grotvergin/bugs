@@ -5,19 +5,21 @@
 // Accuracy for determening the achievement of target
 #define ACCURACY_TARGET 0.2
 // Accuracy for reaching Ti
-#define ACCURACY_CUR_POS_IS_Ti 0.01
+#define ACCURACY_CUR_POS_IS_Ti 0.05
 // Buffer just in case, to avoid boundary case in testng target reachability
 #define BUFFER_CHECK_REACHABILITY 0.03
-// Radius of vision for the robot
+// Radius of vision for the robot (CHANGE BASE DIST TOO!!!!)
 #define VISION_RADIUS 0.8f
 // Accuracy for determening whether the point lies on Mline
 #define ACCURACY_MLINE 0.2
 // Step for moving along Mline to search appropriate Mline point
 #define SENSIVITY_MOVE_MLINE 0.01
 #define ACCURACY_LINES 0.01f
-#define DELTA_OBSTACLE_DECISION 0.05
-#define DELTA_SEGM_CR_OBST 0.1
+#define DELTA_OBSTACLE_DECISION 0.2
+#define BUFFER_LEAVE 0.3
 #define RANGE_SEARCH_DEGREES 30
+#define SECTOR_OBSTACLE_DECISION 1
+#define DISTANCE_TO_OBSTACLE 0.25
 // Header, containing base class and common methods for any Bug algorithm
 #include "bug.h"
 using Point = geometry_msgs::Point;
@@ -46,7 +48,8 @@ public:
     bool point_is_on_boundary(Point point);
     bool point_is_on_Mline(Point point);
     bool is_between(double x, double b1, double b2);
-    bool segment_crosses_obstacle();
+    bool enough_space_to_leave();
+    bool near_obstacle();
     void check_reachability();
     // Returning points functions
     Point search_endpoint_segment_Mline();

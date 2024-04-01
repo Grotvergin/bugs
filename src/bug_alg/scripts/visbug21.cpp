@@ -66,19 +66,27 @@ void VisBug21::main_logic() {
                 // Moving towards Ti 
                 go_to_point(Ti);
                 // Checking cur_pos = Ti
-                if (cur_pos_is_Ti())
+                if (cur_pos_is_Ti() || near_obstacle())
                     change_state(2);
                 break;
             case 2:
                 // Moving along obstacle boundary
                 wall_follower();
                 // Checking cur_pos != Ti
-                if (!cur_pos_is_Ti())
+                if (!cur_pos_is_Ti() && !near_obstacle())
                     change_state(1);
                 break;
         }
         refresh();
     }
+}
+
+bool VisBug21::near_obstacle() {
+    if (regions["front"] < DISTANCE_TO_OBSTACLE || regions["fright"] < DISTANCE_TO_OBSTACLE
+    || regions["fleft"] < DISTANCE_TO_OBSTACLE || regions["right"] < DISTANCE_TO_OBSTACLE ||
+    regions["left"] < DISTANCE_TO_OBSTACLE)
+        return true;
+    return false;
 }
 
 char VisBug21::procedure_step_1() {
@@ -112,25 +120,36 @@ char VisBug21::procedure_step_2() {
 char VisBug21::procedure_step_3() {
     ROS_INFO_STREAM("Compute Step 3");
     Q = search_endpoint_segment_boundary();
+    ROS_INFO_STREAM("After finding Q");
+    show_points();
     if (segment_crosses_Mline(Ti, Q)) {
+        ROS_INFO_STREAM("Segment crosses Mline");
         P = search_intersection_point(start_point, goal_point, Ti, Q);
+        show_points();
         if (calc_dist_points(P, goal_point) < calc_dist_points(H, goal_point)) {
+            ROS_INFO_STREAM("calc_dist_points(P, goal_point) < calc_dist_points(H, goal_point)");
             X = P;
-            if (!segment_crosses_obstacle()) {
+            show_points();
+            // Check below works badly
+            if (enough_space_to_leave()) {
+                ROS_INFO_STREAM("Leave point defined!");
                 L = P;
                 Ti = P;
+                show_points();
                 return 2;
             }
         }
     }
-    check_reachability();
+    // check_reachability();
     Ti = Q;
+    show_points();
+    ROS_INFO_STREAM("End of step 3");
     return 4;
 }
 
 char VisBug21::procedure_step_4() {
-    ROS_INFO_STREAM("Compute Step 4");
-    Q = point_is_on_Mline(Ti) ? Ti : X;
+    // ROS_INFO_STREAM("Compute Step 4");
+    // Q = point_is_on_Mline(Ti) ? Ti : X;
     // S_apostrophe_point = search_endpoint_segment_Mline();
     // if (calc_dist_points(S_apostrophe_point, goal_point) < calc_dist_points(Q, goal_point) && is_in_main_semiplane()) {
     //     Ti = S_apostrophe_point;
@@ -159,7 +178,12 @@ bool VisBug21::point_is_on_boundary(Point point) {
     double math_dist = calc_dist_points(cur_pos, point);
     ROS_INFO_STREAM("Math dist = " << math_dist);
     ROS_INFO_STREAM("Distance by course = " << get_distance_by_course(dir_interest));
-    if (fabs(get_distance_by_course(dir_interest) - math_dist) < DELTA_OBSTACLE_DECISION) {
+    ROS_INFO_STREAM("Distance by course lower= " << get_distance_by_course(dir_interest + SECTOR_OBSTACLE_DECISION));
+    ROS_INFO_STREAM("Distance by course upper= " << get_distance_by_course(dir_interest - SECTOR_OBSTACLE_DECISION));
+    // May be переполение градусов!!!!!!!
+    if (fabs(get_distance_by_course(dir_interest) - math_dist) < DELTA_OBSTACLE_DECISION
+    || fabs(get_distance_by_course(dir_interest + SECTOR_OBSTACLE_DECISION) - math_dist) < DELTA_OBSTACLE_DECISION
+    || fabs(get_distance_by_course(dir_interest - SECTOR_OBSTACLE_DECISION) - math_dist) < DELTA_OBSTACLE_DECISION) {
         ROS_INFO_STREAM("On boundary!");
         return true;
     }
@@ -169,16 +193,16 @@ bool VisBug21::point_is_on_boundary(Point point) {
 
 void VisBug21::clbk_laser(const sensor_msgs::LaserScan::ConstPtr &msg) {
     // Base regions
-    regions["left"] = std::min(*std::min_element(msg->ranges.begin() + 57, msg->ranges.begin() + 102), BASE_DIST);
-    regions["fleft"] = std::min(*std::min_element(msg->ranges.begin() + 26, msg->ranges.begin() + 56), BASE_DIST);
-    regions["front"] = std::min(std::min(*std::min_element(msg->ranges.begin(), msg->ranges.begin() + 25), *std::min_element(msg->ranges.begin() + 334, msg->ranges.begin() + 359)), BASE_DIST);
-    regions["fright"] = std::min(*std::min_element(msg->ranges.begin() + 303, msg->ranges.begin() + 333), BASE_DIST);
-    regions["right"] = std::min(*std::min_element(msg->ranges.begin() + 257, msg->ranges.begin() + 302), BASE_DIST);
-    regions["right45"] = std::min(msg->ranges[315], BASE_DIST);
-    regions["left45"] = std::min(msg->ranges[45], BASE_DIST);
+    regions["left"] = std::min(*std::min_element(msg->ranges.begin() + 57, msg->ranges.begin() + 102), VISION_RADIUS);
+    regions["fleft"] = std::min(*std::min_element(msg->ranges.begin() + 26, msg->ranges.begin() + 56), VISION_RADIUS);
+    regions["front"] = std::min(std::min(*std::min_element(msg->ranges.begin(), msg->ranges.begin() + 25), *std::min_element(msg->ranges.begin() + 334, msg->ranges.begin() + 359)), VISION_RADIUS);
+    regions["fright"] = std::min(*std::min_element(msg->ranges.begin() + 303, msg->ranges.begin() + 333), VISION_RADIUS);
+    regions["right"] = std::min(*std::min_element(msg->ranges.begin() + 257, msg->ranges.begin() + 302), VISION_RADIUS);
+    regions["right45"] = std::min(msg->ranges[315], VISION_RADIUS);
+    regions["left45"] = std::min(msg->ranges[45], VISION_RADIUS);
     // 360 regions by one degree
     for (int i = 0; i < 360; ++i)
-        regions[std::to_string(i)] = std::min(msg->ranges[i], BASE_DIST);
+        regions[std::to_string(i)] = std::min(msg->ranges[i], VISION_RADIUS);
 }
 
 // Add check for segment, not for the whole line?
@@ -251,13 +275,16 @@ Point VisBug21::search_endpoint_segment_boundary() {
     Point potential_Q_point;
     double dir_Ti = atan2(Ti.y - cur_pos.y, Ti.x - cur_pos.x);
     int robot_degree = adapt_degree(dir_Ti);
+    ROS_INFO_STREAM("Robot degree = " << robot_degree);
     int base_degree = radian2degree(dir_Ti);
+    ROS_INFO_STREAM("Base degree = " << base_degree);
     int potential_angle = base_degree;
-    double dist_Q = 0;
+    double dist_Q = calc_dist_points(cur_pos, Ti);
     if (DIR_IS_LEFT) {
         for (int i = robot_degree; i - robot_degree < RANGE_SEARCH_DEGREES; ++i) {
-            double cur_dist = regions[std::to_string(i > 360 ? i - 360 : i)];
-            if (cur_dist < BASE_DIST) {
+            double cur_dist = regions[std::to_string(i >= 360 ? i - 360 : i)];
+            ROS_INFO_STREAM("Loop i = " << i << " cur_dist = " << cur_dist);
+            if (cur_dist < VISION_RADIUS) {
                 dist_Q = cur_dist;
                 potential_angle++;
             } else break;
@@ -266,23 +293,27 @@ Point VisBug21::search_endpoint_segment_boundary() {
     } else {
         for (int i = robot_degree; robot_degree - i < RANGE_SEARCH_DEGREES; --i) {
             double cur_dist = regions[std::to_string(i < 0 ? i + 360 : i)];
-            if (cur_dist < BASE_DIST) {
+            if (cur_dist < VISION_RADIUS) {
                 dist_Q = cur_dist;
                 potential_angle--;
             } else break;
         }
         if (potential_angle < -180) potential_angle += 360;
     }
+    ROS_INFO_STREAM("Dist Q = " << dist_Q);
+    ROS_INFO_STREAM("Potential angle = " << potential_angle);
     potential_Q_point.x = cur_pos.x + cos(degree2radian(potential_angle)) * dist_Q;
     potential_Q_point.y = cur_pos.y + sin(degree2radian(potential_angle)) * dist_Q; 
     return potential_Q_point;
 }
 
-bool VisBug21::segment_crosses_obstacle() {
-    Point test = search_intersection_point(P, goal_point, Ti, Q);
-    if (fabs(test.x - P.x) < DELTA_SEGM_CR_OBST && fabs(test.y - P.y) < DELTA_SEGM_CR_OBST)
-        return false;
-    return true;
+bool VisBug21::enough_space_to_leave() {
+    double dir_P = atan2(P.y - cur_pos.y, P.x - cur_pos.x);
+    double dist_real = get_distance_by_course(dir_P);
+    double dist_math = calc_dist_points(cur_pos, P);
+    if (dist_real - dist_math > BUFFER_LEAVE)
+        return true;
+    return false;
 }
 
 Point VisBug21::search_intersection_point(Point A, Point B, Point C, Point D) {
@@ -346,7 +377,7 @@ bool VisBug21::is_in_main_semiplane() {
 }
 
 void VisBug21::check_reachability() {
-    if (calc_dist_points(H, prev_H) < BUFFER_CHECK_REACHABILITY && H.x != 0 && H.y != 0 && prev_H.x != 0 && prev_H.y != 0) {
+    if (calc_dist_points(H, prev_H) < BUFFER_CHECK_REACHABILITY && H.x * H.y * prev_H.x * prev_H.y != 0) {
         stop_robot();
         create_report("Target can not be reached.");
         kill_system();
