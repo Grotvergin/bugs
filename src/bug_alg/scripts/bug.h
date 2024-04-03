@@ -31,8 +31,8 @@
 // Definitions for some initial parameters
 #define YAW_PRECISION 2 * M_PI / 90
 #define DIST_PRECISION 0.1
-#define LASER_RANGE 0.3
-#define DIAG_RANGE 0.4
+#define LASER_RANGE 0.25
+#define DIAG_RANGE 0.3
 
 #ifndef DIR_IS_LEFT
 #define DIR_IS_LEFT true
