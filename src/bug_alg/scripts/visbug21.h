@@ -14,14 +14,19 @@
 #define ACCURACY_MLINE 0.1
 // Step for moving along Mline to search appropriate Mline point
 #define SENSIVITY_MOVE_MLINE 0.01
-#define ACCURACY_LINES 0.01f
+// Maximum difference for point is on boundary decision
 #define DELTA_OBSTACLE_DECISION 0.3
+// Amount of free space to leave
 #define BUFFER_LEAVE 0.2
+// Range of degrees which will be searched
 #define RANGE_SEARCH_DEGREES 30
+// Sector to be scanned to decide whether the point is on boundary
 #define SECTOR_OBSTACLE_DECISION 1
+// Distance where the obstacle is found
 #define DISTANCE_TO_OBSTACLE 0.3
 // Header, containing base class and common methods for any Bug algorithm
 #include "bug.h"
+// Alias for the brevity
 using Point = geometry_msgs::Point;
 
 // The main class for the algorithm
@@ -65,5 +70,6 @@ public:
 private:
     // Variables for intermediate temporary target points
     Point Ti, Q, H, X, P, L, S, prev_H;
+    // Auxiliary variable for better behaviour when leaving obstacle
     bool leaving_obstacle = false;
 };
