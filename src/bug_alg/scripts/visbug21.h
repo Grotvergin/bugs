@@ -24,6 +24,8 @@
 #define SECTOR_OBSTACLE_DECISION 1
 // Distance where the obstacle is found
 #define DISTANCE_TO_OBSTACLE 0.3
+// Defines which algorithm (VisBug21/22) will be executed
+#define IS_21 false
 // Header, containing base class and common methods for any Bug algorithm
 #include "bug.h"
 // Alias for the brevity

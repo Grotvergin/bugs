@@ -90,7 +90,8 @@ char VisBug21::procedure_step_2() {
         // Assigning points according to the algorithm
         prev_H = H;
         H = Q;
-        X = Q;
+        if (IS_21)
+            X = Q;
         ROS_INFO_STREAM("!HP!: x = " << H.x << " y = " << H.y);
         // Going to step 3 of procedure
         return 3;
@@ -115,7 +116,8 @@ char VisBug21::procedure_step_3() {
             P = Q;
         // If the found P point is closer to goal than H point
         if (calc_dist_points(P, goal_point) < calc_dist_points(H, goal_point)) {
-            X = P;
+            if (IS_21)
+                X = P;
             // If there is enough space in the desired direction
             if (enough_space_to_leave()) {
                 L = P;
@@ -138,15 +140,20 @@ char VisBug21::procedure_step_3() {
 char VisBug21::procedure_step_4() {
     ROS_INFO_STREAM("----- CS 4 -----");
     // Assigning Q to Ti, if Ti is on Mline, else to X
-    Q = point_is_on_Mline(Ti) ? Ti : X;
+    if (IS_21)
+        Q = point_is_on_Mline(Ti) ? Ti : X;
+    else
+        Q = point_is_on_Mline(Ti) ? Ti : H;
     // Searching for the furthest visible point of Mline
     S = search_endpoint_segment_Mline();
     // Managing a special case
-    if (calc_dist_points(S, goal_point) < calc_dist_points(Q, goal_point) && is_in_main_semiplane()) {
-        // Moving the Ti with special method
-        move_Ti(S);
-        // Going to the step 2 of procedure
-        return 2;
+    if (calc_dist_points(S, goal_point) < calc_dist_points(Q, goal_point)) {
+        if (IS_21 && is_in_main_semiplane() || !IS_21) {
+            // Moving the Ti with special method
+            move_Ti(S);
+            // Going to the step 2 of procedure
+            return 2;
+        }
     }
     // Finishing the procedure
     return 0;
