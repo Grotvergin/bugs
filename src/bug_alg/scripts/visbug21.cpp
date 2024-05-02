@@ -142,7 +142,7 @@ char VisBug21::procedure_step_4() {
     // Searching for the furthest visible point of Mline
     S = search_endpoint_segment_Mline();
     // Managing a special case
-    if (calc_dist_points(S_apostrophe_point, goal_point) < calc_dist_points(Q, goal_point) && is_in_main_semiplane()) {
+    if (calc_dist_points(S, goal_point) < calc_dist_points(Q, goal_point) && is_in_main_semiplane()) {
         // Moving the Ti with special method
         move_Ti(S);
         // Going to the step 2 of procedure
@@ -479,5 +479,8 @@ bool VisBug21::cur_pos_is_Ti() {
 // Method for graceful changing of main states
 void VisBug21::change_state(int input_state) {
     state = input_state;
-    input_state == 1 ? ROS_INFO_STREAM("~~~~~ MS 1 ~~~~~") : ROS_INFO_STREAM("~~~~~ MS 2 ~~~~~");
+    if (input_state == 1)
+        ROS_INFO_STREAM("~~~~~ MS 1 ~~~~~");
+    else
+        ROS_INFO_STREAM("~~~~~ MS 2 ~~~~~");
 }
